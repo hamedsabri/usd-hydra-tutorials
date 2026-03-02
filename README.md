@@ -7,7 +7,8 @@ A hands-on tutorial project that walks through building a Qt-based 3D applicatio
 <img width="1175" height="1002" alt="image" src="https://github.com/user-attachments/assets/c5e495dc-feae-4a26-b13a-cbb58910a4d8" />
 
 # Step-by-Step Tutorials
-
+1. [Building a Minimal Qt Application with OpenGL Viewport](https://github.com/hamedsabri/usd-hydra-tutorials/tree/tutorial_1)
+   
 # References
 - [hydra-viewport-toolbox](https://github.com/Autodesk/hydra-viewport-toolbox)
 - [OpenDCC](https://github.com/shapefx/OpenDCC)
