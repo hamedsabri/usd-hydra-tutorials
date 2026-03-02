@@ -3,6 +3,7 @@
 
 #include <pxr/imaging/hd/rendererPluginRegistry.h>
 #include <pxr/imaging/hgi/tokens.h>
+#include <pxr/usdImaging/usdImaging/sceneIndices.h>
 
 PXR_NAMESPACE_USING_DIRECTIVE
 
@@ -22,11 +23,20 @@ void ViewportEngine::initialize(const PXR_NS::UsdStageRefPtr& stage)
     m_hgiDriver = { PXR_NS::HgiTokens->renderDriver, PXR_NS::VtValue(m_hgiPtr.get()) };
     m_renderIndexPtr.reset(PXR_NS::HdRenderIndex::New( m_renderDelegatePtr.Get(), {&m_hgiDriver} ));
 
-    // create the Render Index
-    m_sceneDelegatePtr = std::make_unique<PXR_NS::UsdImagingDelegate>(m_renderIndexPtr.get(), PXR_NS::SdfPath("/"));
+    
+    PXR_NS::UsdImagingCreateSceneIndicesInfo info;
+    info.displayUnloadedPrimsWithBounds = false;
+    info.stage                          = stage;
+    const PXR_NS::UsdImagingSceneIndices sceneIndices = UsdImagingCreateSceneIndices(info);
 
-    // populate Hydra from the USD stage
-    m_sceneDelegatePtr->Populate(stage->GetPseudoRoot());
+    // scene delegate
+    m_stageSceneIndex = sceneIndices.stageSceneIndex;
+    m_stageSceneIndex->SetStage(stage);
+    m_stageSceneIndex->SetTime(UsdTimeCode::Default());
+
+    // insert scene index
+    PXR_NS::HdSceneIndexBaseRefPtr usdSceneIndex = sceneIndices.finalSceneIndex;
+    m_renderIndexPtr->InsertSceneIndex(usdSceneIndex, SdfPath::AbsoluteRootPath());
 
     // task controller
     auto controllerID = "/MyUniqueTaskControllerID";
@@ -71,7 +81,7 @@ ViewportEngine::~ViewportEngine()
 {
     // The order is important here
     m_taskControllerPtr  = nullptr;
-    m_sceneDelegatePtr   = nullptr;
+    m_stageSceneIndex    = nullptr;
     m_renderIndexPtr     = nullptr;
     m_renderDelegatePtr  = nullptr;
 }

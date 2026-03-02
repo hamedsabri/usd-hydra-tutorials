@@ -2,12 +2,14 @@
 
 #include <pxr/usd/usd/stage.h>
 
-#include "pxr/imaging/hdx/taskController.h"
-#include "pxr/usdImaging/usdImagingGL/engine.h"
 #include <pxr/imaging/hd/pluginRenderDelegateUniqueHandle.h>
 #include <pxr/imaging/hd/renderIndex.h>
+#include <pxr/imaging/hdx/taskController.h>
 #include <pxr/imaging/hgiGL/hgi.h>
+
+#include <pxr/usdImaging/usdImagingGL/engine.h>
 #include <pxr/usdImaging/usdImaging/delegate.h>
+#include <pxr/usdImaging/usdImaging/stageSceneIndex.h>
 
 #include <memory>
 
@@ -17,8 +19,6 @@ namespace HVW_NS
 class UsdCamera;
 class ViewportEngine final
 {
-    using Ptr = std::unique_ptr<PXR_NS::UsdImagingGLEngine>;
-
 public:
     ViewportEngine() = default;
     ~ViewportEngine();
@@ -34,7 +34,7 @@ public:
 
 private:
 
-    std::unique_ptr<PXR_NS::UsdImagingDelegate> m_sceneDelegatePtr;
+    PXR_NS::UsdImagingStageSceneIndexRefPtr     m_stageSceneIndex;
     
     std::unique_ptr<PXR_NS::HdRenderIndex>      m_renderIndexPtr; 
     
