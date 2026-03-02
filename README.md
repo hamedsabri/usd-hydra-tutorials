@@ -1,71 +1,151 @@
-# What is Hydra?
+# UsdImagingGLEngine
 
-Hydra is the rendering architecture in OpenUSD that decouples scene description from rendering, allowing the same USD scene graph data to be efficiently rendered using different renderers (real-time, ray-traced, etc.).
+UsdImagingGLEngine serves as the main high-level entry point / convenience API for rendering USD scenes in an OpenGL context. This is a convenience layer that wraps Hydra engine (HdEngine) to make rendering a USD stage straightforward in an existing OpenGL context.
 
-Hydra come in three main parts:
+With UsdImagingGLEngine, you can easily render a USD stage, set up render parameters using `UsdImagingGLRenderParams`, and call simple functions like `Render()`, `TestIntersection()` without dealing with the underlying Hydra components such as the scene delegate / index , render index, or tasks.
 
-1. `Scene Delegate`( UsdImagingDelegate ) / Scene Index ( UsdImagingStageSceneIndex )
+- [UsdImagingGLEngine Class Reference](https://openusd.org/24.08/api/class_usd_imaging_g_l_engine.html)
+- [UsdImagingGLRenderParams Class Reference](https://openusd.org/24.08/api/class_usd_imaging_g_l_render_params.html#details)
 
-    This part provides the scene information either via:
+Here, we are going to implement a bare-minimum code required to render a USD stage in a viewport powered by UsdImagingGLEngine. For the sake of simplicity, I won’t be covering Qt or CMake build configuration, as this material assumes you’re already familiar with both.
 
-   - `UsdImaging` (the standard USD integration): This takes a USD scene (for example a UsdStage containing geometry, materials, lights, cameras, animations, instancing, and more) and efficiently translates or marshals that data into a format Hydra can use for rendering. It supports both the legacy Hydra 1.0 delegate system and the modern Hydra 2.0 scene index system.
+# How to Build
+In order to build the project in this branch, you just need to provide additional path to openusd install directory:
 
-       Note: UsdImaging's scene delegate mode is now deprecated in favor of scene index mode. Accordingly, `USDIMAGINGGL_ENGINE_ENABLE_SCENE_INDEX defaults` to 1, and a single-shot deprecation notice will be issued if this is overridden back to 0. The deprecation warning can be suppressed by overriding `USDIMAGINGGL_ENGINE_ENABLE_SCENE_INDEX_DEPRECATION_WARNING` to 0.
+```
+cmake -GNinja -DCMAKE_MAKE_PROGRAM="<path_to_ninja_exe>" -DQT_LOCATION="<path_to_qt_install_directory>" -DOPENUSD_LOCATION="<path_to_openusd_install_directory>" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX="<install_path>" ..
+```
 
-    Hydra Primitives types: Hydra does not mirror USD’s type system directly.Instead, it categorizes data by rendering role:
-      1. Rprim (Renderable Primitive)
-      2. Sprim (State Primitive)
-      3. Bprim (Buffer Primitive)
-        
-    e.g
-    ```
-    UsdGeomMesh   →  HdMesh (Rprim)
-    UsdGeomCamera → HdCamera (Sprim)
-    UsdUVTexture  → HdTexture (Bprim)
-    ``` 
+# Creating a New Stage and Opening a Stage from File
+To support creating and loading USD stages, we introduce a small HVW_NS::UsdDocument class. This class owns the currently `active UsdStage` and exposes a simple interface for either creating a new in-memory stage or opening an existing stage from disk.
 
-    - `Custom implementations`: Developers can provide their own Scene Delegate (HdSceneDelegate) or Scene Index(es) to feed data.
+## HVW_NS::UsdDocument
+This class provides two main functions:
 
-1. `Render Index` (HdRenderIndex)
+1. `createNewStageInMemory`: creates a fresh stage in memory
+2. `openStage`: loads a stage from a file
 
-     The Hydra render index is a **flattened representation of the client scene graph**. It pulls data from the scene delegate/index, syncs updates, and serves as the interface between scene data and the renderer.
-The Render Index uses an internal change tracker (HdChangeTracker) to mark only the dirty/affected parts.During the "sync" phase (e.g., when HdRenderIndex::Sync() is called), it efficiently pulls only the changed data from the scene delegate/index.
+In both cases, the active stage is stored internally and a stageOpened signal is emitted so the rest of the application can react to the change.
 
-     [HdRenderIndex](https://openusd.org/dev/api/class_hd_render_index.html#details)
+# ViewportEngine
+ViewportEngine is simply a wrapper around OpenUSD’s UsdImagingGLEngine that initializes and manages a Hydra-based OpenGL renderer for drawing a UsdStage with a given camera and render settings.
 
-2. `Render Delegate`: Renderer-specific plugin that implements creation/sync of primitives (meshes, materials, etc.) and rendering execution to create the final image. (e.g HdStorm, HdArlnold, HdPrman, etc...)
+**SetCameraState**: to define the camera's view and projection matrices
+**SetRenderViewport**: to define the render area
+**Render**: to execute the Hydra render pass
 
-Here are the diagram images that are often illustrate these three steps:
+`UsdImagingGLRenderParams` controls how the scene is rendered. It basically defines rendering behavior such as:
 
-**Screenshot taken from Pixar's Siggraph presentaion**
-<img width="848" height="697" alt="Screenshot 2026-02-22 171822" src="https://github.com/user-attachments/assets/38c64811-e944-46ca-a739-c7d8db23db7d" />
+enableLighting – Toggles scene lighting on or off.
+drawMode – Controls how geometry is drawn (e.g., shaded, wireframe).
+showGuides / showProxy / showRender – Determines which purpose types are visible.
+enableSceneMaterials – Enables or disables material shading.
+cullStyle – Controls backface/frontface culling behavior.
+clearColor – Defines the background color.
 
-**Screenshot taken from Hydra - Nvidia Learn OpenUsd series**
-<img width="761" height="368" alt="Screenshot 2026-02-22 171955" src="https://github.com/user-attachments/assets/0bc8c735-40d5-4fc6-8639-7cb98b805a47" />
+```
+void ViewportEngine::render(const PXR_NS::UsdStageRefPtr& stage, 
+                            UsdCamera* camera,
+                            double width, double height)
+{
 
-**Screenshot taken from Autodesk's Adding Vulkan to Pixar's Hydra Storm Renderer presentaion**
-<img width="1111" height="564" alt="Screenshot 2026-02-22 172010" src="https://github.com/user-attachments/assets/50b7b43a-98b4-4728-861e-dfced49bedb0" />
+    camera->setAspectRatio(width / std::max(1.0, height));
+    camera->updateTransform();
+    m_engine->SetCameraState(camera->getViewMatrix(), camera->getProjectionMatrix());
 
-## Hydra 1.0 vs Hydra 2.0
+    m_engine->SetRenderViewport(PXR_NS::GfVec4d(0, 0, width, height));
 
-Hydra 1.0 and Hydra 2.0 refer to two generations of the scene data handling architecure in OpenUSD's Hydra rendering architecture. The core goal remains the same which is decoupling scene description from rendering but Hydra 2.0 introduced gradually which brings major improvements in flexibility, extensibility, and support for procedural/runtime transformations. You can think of Hydra 2.0 as a `Composable SceneIndex pipeline` where scene is represented as a `chain of HdSceneIndex layers`. Each layer can Filter, Modify, and Procedurally generate data.
+    m_renderParams.cullStyle = UsdImagingGLCullStyle::CULL_STYLE_BACK_UNLESS_DOUBLE_SIDED;
+    m_renderParams.clearColor = GfVec4f(0.2f, 0.2f, 0.2f, 1.0f);
+    m_renderParams.forceRefresh = false;
+    m_renderParams.enableLighting = false;
+    m_renderParams.enableSampleAlphaToCoverage = false;
+    m_renderParams.enableSceneMaterials = true;
+    m_renderParams.enableSceneLights = true;
+    m_renderParams.flipFrontFacing = true;
+    m_renderParams.gammaCorrectColors = true;
+    m_renderParams.highlight = true;
+    m_renderParams.showGuides = true;
+    m_renderParams.showProxy = true;
+    m_renderParams.showRender = true;
+    m_renderParams.complexity = 1.0;
 
-# What is Storm (HdStorm)?
+    m_engine->Render(stage->GetPseudoRoot(), m_renderParams);
+}
 
-Storm is Hydra's `real-time rasterizing render delegate`. Originally built on `OpenGL`, Storm later adopted the `Hydra Graphics Interface` (Hgi) an abstraction layer for modern low-level graphics APIs to enable broader support. A few years ago, the "HgiMetal" backend was added to leverage Apple's Metal API, significantly boosting performance on macOS and iOS. From Collaborative effort from Autodesk, Pixar, and Adobe the "HgiVulkan" backend was also introduced in `OpenUSD 24.08`.
+```
+# Camera
+UsdCamera is a simple interactive camera controller built on `pxr::GfCamera` that provides orbit, pan, dolly, zoom, framing, and clipping controls for navigating a USD scene within a viewport.
 
-## HGI ( Hydra Graphic Interface )
+`getViewMatrix()` returns the camera’s view matrix
+`getProjectionMatrix()` returns the projection matrix
+`updateTransform()` recalculates and applies the camera’s transform
 
-Hgi is an abstraction layer within OpenUSD's Hydra rendering framework to let storm renderercommunicate with different modern low-level graphics APIs ( e.g Vulkan, Dirext12, OpenGL, Metal ) without being tied to any single one.
+```
+void ViewportEngine::render(const PXR_NS::UsdStageRefPtr& stage, 
+                            UsdCamera* camera,
+                            double width, double height)
+{
 
-- HgiGL — For OpenGL (the original/default backend).
-- HgiMetal — For Apple's Metal API (added to support macOS and iOS efficiently).
-- HgiVulkan — Experimental support for Khronos Vulkan (added in OpenUSD 24.08; collaborative work from Pixar, Autodesk, Adobe).
+    camera->setAspectRatio(width / std::max(1.0, height));
+    camera->updateTransform();
+    m_engine->SetCameraState(camera->getViewMatrix(), camera->getProjectionMatrix());
 
-- [Hgi Class Reference](https://openusd.org/release/api/class_hgi.html#details)
+    ...
+}
+```
 
-# Revelant Api Documentations
-- [**Hd** : The Hydra Framework](https://openusd.org/docs/api/hd_page_front.html)
-- [**HdSt** : Rendering functionality for HdStorm](https://openusd.org/docs/api/hd_st_page_front.html)
-- [**HdStorm** : Real-time Hydra renderer plugin](https://openusd.org/docs/api/hd_storm_page_front.html)
-- [**Hdx** : Hydra extensions](https://openusd.org/docs/api/hdx_page_front.html)
+# ViewportOpenGLWidget
+ViewportOpenGLWidget is an OpenGL viewport that integrates UsdImagingGLEngine into a QOpenGLWidget, managing the GL context, user interaction, camera control, and delegating actual scene drawing to ViewportEngine.
+
+```
+void ViewportOpenGLWidget::initialize()
+{
+    if (!m_usdDocument->getCurrentStage()) {
+        return;
+    }
+
+    m_camera = std::make_unique<UsdCamera>(m_usdDocument->getCurrentStage());
+    m_viewportEngine = std::make_unique<ViewportEngine>();
+    m_viewportEngine->initialize(m_usdDocument->getCurrentStage());
+
+    qDebug() << "[Viewport] Created.";
+    qDebug() << "[Viewport]"
+             << QStringLiteral("Renderer: %1").arg(QString::fromStdString(m_viewportEngine->rendererName()))
+             << QStringLiteral("Hgi: %1").arg(QString::fromStdString(m_viewportEngine->hgiName()));
+}
+
+void ViewportOpenGLWidget::resizeGL(int w, int h)
+{
+    m_width = w * devicePixelRatio();
+    m_height = h * devicePixelRatio();
+
+    glViewport(0, 0, w, h);
+}
+
+void ViewportOpenGLWidget::paintGL()
+{
+    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_MULTISAMPLE);
+    glDepthMask(GL_TRUE);
+    glDepthFunc(GL_LESS);
+
+    if (!m_usdDocument->getCurrentStage()) {
+        return;
+    }
+
+    m_viewportEngine->render(m_usdDocument->getCurrentStage(), m_camera.get(), m_width, m_height);
+}
+```
+This covers the fundamental building blocks required to implement a minimal Hydra-based viewport using UsdImagingGLEngine.
+From here, you can explore more advanced topics such as selection, picking, custom render passes (e.g., using GlfDrawTargetRefPtr), and renderer AOVs by studying the following open-source projects:
+
+- [tinkerusd](https://github.com/hamedsabri/TinkerUsd)
+- [usdtweak](https://github.com/cpichard/usdtweak)
+
+# Executable Demo
+![demo](https://github.com/user-attachments/assets/66041b5d-7667-4273-9b57-9ec314aa3414)
