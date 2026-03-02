@@ -58,9 +58,9 @@ Storm is Hydra's `real-time rasterizing render delegate`. Originally built on `O
 
 Hgi is an abstraction layer within OpenUSD's Hydra rendering framework to let storm renderercommunicate with different modern low-level graphics APIs ( e.g Vulkan, Dirext12, OpenGL, Metal ) without being tied to any single one.
 
-- HgiGL — For OpenGL (the original/default backend).
-- HgiMetal — For Apple's Metal API (added to support macOS and iOS efficiently).
-- HgiVulkan — Experimental support for Khronos Vulkan (added in OpenUSD 24.08; collaborative work from Pixar, Autodesk, Adobe).
+- **HgiGL** — For OpenGL (the original/default backend).
+- **HgiMetal** — For Apple's Metal API (added to support macOS and iOS efficiently).
+- **HgiVulkan** — Experimental support for Khronos Vulkan (added in OpenUSD 24.08; collaborative work from Pixar, Autodesk, Adobe).
 
 - [Hgi Class Reference](https://openusd.org/release/api/class_hgi.html#details)
 
