@@ -1,4 +1,4 @@
-set(TARGET_NAME Tutorial5)
+set(TARGET_NAME Tutorial_6)
 
 add_executable(${TARGET_NAME})
 
@@ -33,6 +33,7 @@ target_link_libraries(${TARGET_NAME}
         Qt6::OpenGL
         Qt6::OpenGLWidgets
         qtadvanceddocking-qt6
+        hvt::hvt
 )
 
 target_compile_definitions(${TARGET_NAME}

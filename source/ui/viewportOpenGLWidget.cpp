@@ -65,13 +65,13 @@ void ViewportOpenGLWidget::paintGL()
         return;
     }
 
-    m_viewportEngine->render(m_usdDocument->getCurrentStage(), m_camera.get(), m_width, m_height);
+    m_viewportEngine->render(m_camera.get(), m_width, m_height);
 }
 
 void ViewportOpenGLWidget::onStageOpened(const QString& filePath)
 {
+    m_viewportEngine.reset();
     initialize();
-
     update();
 }
 

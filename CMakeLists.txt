@@ -8,9 +8,12 @@ set(QT_LOCATION "<your_path_to_qt_install_directory>" CACHE PATH "Qt Install Loc
 # User-configurable path to OpenUSD installation directory
 set(OPENUSD_LOCATION "<your_path_to_openusd_install_directory>" CACHE PATH "OpenUSD Install Location")
 
+set(HVT_LOCATION "<your_path_to_hydra_toolbox_install_directory>" CACHE PATH "Hydra Toolbox Install Location")
+
 list(APPEND CMAKE_PREFIX_PATH
-    ${QT_LOCATION}
+    ${HVT_LOCATION}
     ${OPENUSD_LOCATION}
+    ${QT_LOCATION}
 )
 
 #------------------------------------------------------------------------------
@@ -39,6 +42,14 @@ if(DEFINED PXR_VERSION)
     message(STATUS "Using OpenUSD ${USD_VERSION_STRING}")
 else()
     message(FATAL_ERROR "OpenUSD not found or PXR_VERSION not defined!")
+endif()
+
+# HVT
+find_package(hvt CONFIG REQUIRED)
+if(hvt_FOUND)
+    message(STATUS "Using HVT ${hvt_VERSION}")
+else()
+    message(FATAL_ERROR "HVT ${hvt_VERSION} not found!")
 endif()
 
 #------------------------------------------------------------------------------
