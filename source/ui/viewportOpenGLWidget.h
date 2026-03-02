@@ -3,67 +3,47 @@
 #include <QOpenGLFunctions_4_5_Core>
 #include <QOpenGLWidget>
 
+#include "camera/usdCamera.h"
+#include "render/viewportEngine.h"
+
 namespace HVW_NS
 {
 
-/**
- * @brief OpenGL viewport widget.
- */
+class UsdDocument;
+
 class ViewportOpenGLWidget
     : public QOpenGLWidget
     , public QOpenGLFunctions_4_5_Core
 {
     Q_OBJECT
-
 public:
-    /**
-     * @brief Constructs the viewport widget.
-     */
-    ViewportOpenGLWidget(QWidget* parent = nullptr);
-
-    /**
-     * @brief Destroys the viewport widget and releases OpenGL resources.
-     */
+    ViewportOpenGLWidget(UsdDocument* document, QWidget* parent = nullptr);
     virtual ~ViewportOpenGLWidget() = default;
 
 protected:
-    /**
-     * @brief Initializes OpenGL state and rendering resources.
-     */
     void initializeGL() override;
-
-    /**
-     * @brief Handles viewport resize events.
-     *
-     * @param w New viewport width in pixels.
-     * @param h New viewport height in pixels.
-     */
     void resizeGL(int w, int h) override;
-
-    /**
-     * @brief Renders the current frame.
-     */
     void paintGL() override;
-
-    /**
-     * @brief Handles mouse wheel events for camera interaction.
-     */
     void wheelEvent(QWheelEvent* event) override;
-
-    /**
-     * @brief Handles mouse press events.
-     */
     void mousePressEvent(QMouseEvent* event) override;
-
-    /**
-     * @brief Handles mouse move events for interactive camera control.
-     */
     void mouseMoveEvent(QMouseEvent* event) override;
-
-    /**
-     * @brief Handles mouse release events.
-     */
     void mouseReleaseEvent(QMouseEvent* event) override;
+
+private Q_SLOTS:
+    void onStageOpened(const QString& filePath);
+
+private:
+    void initialize();
+
+private:
+    UsdDocument*                    m_usdDocument;
+    std::unique_ptr<ViewportEngine> m_viewportEngine;
+    std::unique_ptr<UsdCamera>      m_camera;
+
+    double                          m_height{1};
+    double                          m_width{1};
+
+    QPoint                          m_lastMousePosition;
 };
 
-} // namespace HydraViewport
+} // namespace HVW_NS

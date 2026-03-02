@@ -1,4 +1,4 @@
-set(TARGET_NAME Tutorial1)
+set(TARGET_NAME Tutorial3)
 
 add_executable(${TARGET_NAME})
 
@@ -23,12 +23,27 @@ target_include_directories(${TARGET_NAME}
 # -----------------------------------------------------------------------------
 target_link_libraries(${TARGET_NAME}
     PRIVATE
+        usd
+        sdf
+        usdImaging
+        usdImagingGL
         Qt6::Core
         Qt6::Gui
         Qt6::Widgets
         Qt6::OpenGL
         Qt6::OpenGLWidgets
         qtadvanceddocking-qt6
+)
+
+target_compile_definitions(${TARGET_NAME}
+    PRIVATE 
+        NOMINMAX
+        TBB_SUPPRESS_DEPRECATED_MESSAGES
+)
+
+target_compile_options(${TARGET_NAME} 
+    PRIVATE
+        /wd4996 # warning STL4029: std::atomic_*() overloads for shared_ptr are deprecated in C++20
 )
 
 target_compile_features(${TARGET_NAME} 
@@ -54,5 +69,8 @@ endif()
 #------------------------------------------------------------------------------
 # directories
 #------------------------------------------------------------------------------
+add_subdirectory(model)
+add_subdirectory(render)
 add_subdirectory(resources)
+add_subdirectory(camera)
 add_subdirectory(ui)

@@ -1,10 +1,14 @@
 #include "mainWindow.h"
 #include "loggerWidget.h"
 #include "mainMenuBar.h"
+#include "model/usdDocument.h"
 #include "viewportOpenGLWidget.h"
 
 #include "DockManager.h"
 
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
 #include <QStatusBar>
 
 namespace HVW_NS
@@ -17,7 +21,8 @@ MainWindow::MainWindow(QWidget* parent)
 
     auto dockManager = new ads::CDockManager(this);
     auto mainMenuBar = new MainMenuBar(this);
-    auto viewportGLWidget = new ViewportOpenGLWidget(this);
+    auto usdDocument = new UsdDocument(this);
+    auto viewportGLWidget = new ViewportOpenGLWidget(usdDocument, this);
 
     LogWidget& loggerWidget = LogWidget::instance(this);
 
@@ -59,6 +64,15 @@ MainWindow::MainWindow(QWidget* parent)
     loggerDockWidget->setMinimumSize(340, 50);
     dockManager->addDockWidget(ads::BottomDockWidgetArea, loggerDockWidget);
     mainMenuBar->getPanelsMenu()->addAction(loggerDockWidget->toggleViewAction());
+
+    // connection signal/slots
+    connect(mainMenuBar, &MainMenuBar::newStageSignal, usdDocument, &UsdDocument::createNewStageInMemory);
+    connect(mainMenuBar, &MainMenuBar::openStageSignal, usdDocument, &UsdDocument::openStage);
+    connect(usdDocument, &UsdDocument::stageOpened, [this](const QString& filePath) {
+        QString baseName = QFileInfo(filePath).fileName();
+        QString title = QString("%1 - UsdViewer: %2").arg(baseName, QDir::toNativeSeparators(filePath));
+        setWindowTitle(title);
+    });
 }
 
 } // namespace HVW_NS

@@ -2,6 +2,7 @@
 
 #include <QAction>
 #include <QApplication>
+#include <QFileDialog>
 
 namespace HVW_NS
 {
@@ -34,9 +35,14 @@ void MainMenuBar::setupMenus()
     // panels
     m_panelsMenu = addMenu("Panels");
 
-    connect(newStageAction, &QAction::triggered, [this]() {
-    });
+    // connection signal/slots
+    connect(newStageAction, &QAction::triggered, this, &MainMenuBar::newStageSignal);
     connect(openStageAction, &QAction::triggered, [this]() {
+        QString file = QFileDialog::getOpenFileName(
+            this, "Open USD Stage", "", "USD Files (*.usd *.usda *.usdc *.usdz)");
+        if (!file.isEmpty()) {
+            emit openStageSignal(file);
+        }
     });
     connect(quitAction, &QAction::triggered, qApp, &QApplication::quit);
 }
