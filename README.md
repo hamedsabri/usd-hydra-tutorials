@@ -1,186 +1,71 @@
-# Prerequisites
-- **C++**: Familiarity with modern C++
-- **OpenGL**: Familiarity with modern OpenGL concepts, including framebuffers, shaders, and rendering pipelines.
-- **Pixar’s OpenUSD**: basic knowledge of core USD concepts such as
-stages, prims, attributes, and layers.
-- **Cmake**: Familiarity with configuring, building, and linking C++ projects
-using CMake.
-- **Qt**: Comfortable with creating Qt widgets, signal/slot communication
-model, and the Qt event loop
+# What is Hydra?
 
-# How to Build
+Hydra is the rendering architecture in OpenUSD that decouples scene description from rendering, allowing the same USD scene graph data to be efficiently rendered using different renderers (real-time, ray-traced, etc.).
 
-## Windows
+Hydra come in three main parts:
 
-1. VisualStudio 2022 (Required)
-2. CMake (Required)
-3. Qt 6 (Required)
-4. ninja (optional)
+1. `Scene Delegate`( UsdImagingDelegate ) / Scene Index ( UsdImagingStageSceneIndex )
 
-Make sure you are working inside a Developer Command Prompt by launching
-VsDevCmd.bat:
+    This part provides the scene information either via:
 
-```console
-cmd.exe /k "C:\\Program Files\\Microsoft Visual
-Studio\\2022\\Professional\\Common7\\Tools\\VsDevCmd.bat" -startdir=none
--arch=x64 -host_arch=x64
-```
+   - `UsdImaging` (the standard USD integration): This takes a USD scene (for example a UsdStage containing geometry, materials, lights, cameras, animations, instancing, and more) and efficiently translates or marshals that data into a format Hydra can use for rendering. It supports both the legacy Hydra 1.0 delegate system and the modern Hydra 2.0 scene index system.
 
-Then run the following commands:
+       Note: UsdImaging's scene delegate mode is now deprecated in favor of scene index mode. Accordingly, `USDIMAGINGGL_ENGINE_ENABLE_SCENE_INDEX defaults` to 1, and a single-shot deprecation notice will be issued if this is overridden back to 0. The deprecation warning can be suppressed by overriding `USDIMAGINGGL_ENGINE_ENABLE_SCENE_INDEX_DEPRECATION_WARNING` to 0.
 
-```console
-1- git clone https://github.com/hamedsabri/usd-hydra-tutorials && cd usd-hydra-tutorials
+    Hydra Primitives types: Hydra does not mirror USD’s type system directly.Instead, it categorizes data by rendering role:
+      1. Rprim (Renderable Primitive)
+      2. Sprim (State Primitive)
+      3. Bprim (Buffer Primitive)
+        
+    e.g
+    ```
+    UsdGeomMesh   →  HdMesh (Rprim)
+    UsdGeomCamera → HdCamera (Sprim)
+    UsdUVTexture  → HdTexture (Bprim)
+    ``` 
 
-2- makedir build && cd build
+    - `Custom implementations`: Developers can provide their own Scene Delegate (HdSceneDelegate) or Scene Index(es) to feed data.
 
-3- cmake -GNinja -DCMAKE_MAKE_PROGRAM="<path_to_ninja_exe>" -DQT_LOCATION="<path_to_qt_install_directory>" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX="<install_path>" ..
+1. `Render Index` (HdRenderIndex)
 
-4- ninja -j<num_cores> install
-```
+     The Hydra render index is a **flattened representation of the client scene graph**. It pulls data from the scene delegate/index, syncs updates, and serves as the interface between scene data and the renderer.
+The Render Index uses an internal change tracker (HdChangeTracker) to mark only the dirty/affected parts.During the "sync" phase (e.g., when HdRenderIndex::Sync() is called), it efficiently pulls only the changed data from the scene delegate/index.
 
-Alternatively, you can build using `MSBuild`:
+     [HdRenderIndex](https://openusd.org/dev/api/class_hd_render_index.html#details)
 
-```console
-cmake -DQT_LOCATION="<path_to_qt_install_directory>" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX="<install_path>" ..
+2. `Render Delegate`: Renderer-specific plugin that implements creation/sync of primitives (meshes, materials, etc.) and rendering execution to create the final image. (e.g HdStorm, HdArlnold, HdPrman, etc...)
 
-cmake --build . --config RelWithDebInfo --target install
-```
+Here are the diagram images that are often illustrate these three steps:
 
-That said, MSBuild is noticeably slower. Switching to Ninja can significantly improve build times.
+**Screenshot taken from Pixar's Siggraph presentaion**
+<img width="848" height="697" alt="Screenshot 2026-02-22 171822" src="https://github.com/user-attachments/assets/38c64811-e944-46ca-a739-c7d8db23db7d" />
 
-# Building a Minimal Qt Application With OpenGL Viewport
-To start, we need a minimal Qt application that hosts an OpenGL viewport. For the sake of simplicity, only the essential components required for a functional viewport are included.
+**Screenshot taken from Hydra - Nvidia Learn OpenUsd series**
+<img width="761" height="368" alt="Screenshot 2026-02-22 171955" src="https://github.com/user-attachments/assets/0bc8c735-40d5-4fc6-8639-7cb98b805a47" />
 
-## MainWindow
-The MainWindow initializes the core application components, including the dock manager, menu bar, OpenGL viewport, and logger:
+**Screenshot taken from Autodesk's Adding Vulkan to Pixar's Hydra Storm Renderer presentaion**
+<img width="1111" height="564" alt="Screenshot 2026-02-22 172010" src="https://github.com/user-attachments/assets/50b7b43a-98b4-4728-861e-dfced49bedb0" />
 
-```cpp
-auto dockManager = new ads::CDockManager(this);
-auto mainMenuBar = new MainMenuBar(this);
-auto viewportGLWidget = new ViewportOpenGLWidget(this);
-LogWidget& loggerWidget = LogWidget::instance(this);
-```
+## Hydra 1.0 vs Hydra 2.0
 
-## ViewportOpenGLWidget
-The viewport itself is implemented as a QOpenGLWidget and embedded in the main window as a dock widget using the Qt Advanced Docking System (ADS).
+Hydra 1.0 and Hydra 2.0 refer to two generations of the scene data handling architecure in OpenUSD's Hydra rendering architecture. The core goal remains the same which is decoupling scene description from rendering but Hydra 2.0 introduced gradually which brings major improvements in flexibility, extensibility, and support for procedural/runtime transformations. You can think of Hydra 2.0 as a `Composable SceneIndex pipeline` where scene is represented as a `chain of HdSceneIndex layers`. Each layer can Filter, Modify, and Procedurally generate data.
 
-```cpp
-class ViewportOpenGLWidget
-    : public QOpenGLWidget
-    , public QOpenGLFunctions_4_5_Core
-{
-    Q_OBJECT
+# What is Storm (HdStorm)?
 
-public:
-    ViewportOpenGLWidget(QWidget* parent = nullptr);
-    virtual ~ViewportOpenGLWidget() = default;
+Storm is Hydra's `real-time rasterizing render delegate`. Originally built on `OpenGL`, Storm later adopted the `Hydra Graphics Interface` (Hgi) an abstraction layer for modern low-level graphics APIs to enable broader support. A few years ago, the "HgiMetal" backend was added to leverage Apple's Metal API, significantly boosting performance on macOS and iOS. From Collaborative effort from Autodesk, Pixar, and Adobe the "HgiVulkan" backend was also introduced in `OpenUSD 24.08`.
 
-protected:
-    void initializeGL() override;
-    void resizeGL(int w, int h) override;
-    void paintGL() override;
-    void wheelEvent(QWheelEvent* event) override;
-    void mousePressEvent(QMouseEvent* event) override;
-    void mouseMoveEvent(QMouseEvent* event) override;
-    void mouseReleaseEvent(QMouseEvent* event) override;
-};
-```
-QOpenGLWidget is Qt's built-in widget designed specifically for OpenGL rendering and provides:
+## HGI ( Hydra Graphic Interface )
 
-- An OpenGL context
-- A default framebuffer object
-- Automatic context management
-- The render lifecycle callbacks:
-- initializeGL()
-- resizeGL()
-- paintGL()
+Hgi is an abstraction layer within OpenUSD's Hydra rendering framework to let storm renderercommunicate with different modern low-level graphics APIs ( e.g Vulkan, Dirext12, OpenGL, Metal ) without being tied to any single one.
 
-```cpp
-ViewportOpenGLWidget::ViewportOpenGLWidget(QWidget* parent)
-    : QOpenGLWidget(parent)
-{
-    QSurfaceFormat format;
-    format.setSamples(SAMPLE_AMOUNT);
-    setFormat(format);
-}
+- HgiGL — For OpenGL (the original/default backend).
+- HgiMetal — For Apple's Metal API (added to support macOS and iOS efficiently).
+- HgiVulkan — Experimental support for Khronos Vulkan (added in OpenUSD 24.08; collaborative work from Pixar, Autodesk, Adobe).
 
-void ViewportOpenGLWidget::initializeGL()
-{
-    initializeOpenGLFunctions();
-}
+- [Hgi Class Reference](https://openusd.org/release/api/class_hgi.html#details)
 
-void ViewportOpenGLWidget::resizeGL(int w, int h)
-{
-    glViewport(0, 0, w, h);
-}
-
-void ViewportOpenGLWidget::paintGL()
-{
-    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_MULTISAMPLE);
-    glDepthMask(GL_TRUE);
-    glDepthFunc(GL_LESS);
-}
-
-void ViewportOpenGLWidget::wheelEvent(QWheelEvent* event)
-{
-    update();
-}
-
-void ViewportOpenGLWidget::mousePressEvent(QMouseEvent* event)
-{
-}
-
-void ViewportOpenGLWidget::mouseMoveEvent(QMouseEvent* event)
-{
-    update();
-}
-
-void ViewportOpenGLWidget::mouseReleaseEvent(QMouseEvent* event)
-{
-}
-```
-
-```cpp
-// openGlViewport dockWidget
-ads::CDockWidget* openGlViewportDockWidget = new ads::CDockWidget("Viewport");
-openGlViewportDockWidget->setWidget(viewportGLWidget);
-
-openGlViewportDockWidget->setMinimumSizeHintMode(ads::CDockWidget::MinimumSizeHintFromDockWidget);
-openGlViewportDockWidget->setMinimumSize(600, 450);
-
-openGlViewportDockWidget->setFeature(ads::CDockWidget::DockWidgetClosable, false);
-openGlViewportDockWidget->setFeature(ads::CDockWidget::DockWidgetMovable, false);
-openGlViewportDockWidget->setFeature(ads::CDockWidget::DockWidgetFloatable, false);
-
-dockManager->addDockWidget(ads::CenterDockWidgetArea, openGlViewportDockWidget);
-mainMenuBar->getPanelsMenu()->addAction(openGlViewportDockWidget->toggleViewAction());
-```
-## LogWidget
-To make debugging easier, the viewer includes a simple Logger widget. Instead of relying solely on 
-console output, this widget captures Qt log messages and displays them directly inside the application,
-making it easier to inspect runtime behavior while interacting with the UI.
-
-```cpp
-// logger
-ads::CDockWidget* loggerDockWidget = new ads::CDockWidget("Logger");
-loggerDockWidget->setWidget(&loggerWidget);
-loggerDockWidget->setMinimumSizeHintMode(ads::CDockWidget::MinimumSizeHintFromDockWidget);
-loggerDockWidget->setMinimumSize(340, 50);
-dockManager->addDockWidget(ads::BottomDockWidgetArea, loggerDockWidget);
-mainMenuBar->getPanelsMenu()->addAction(loggerDockWidget->toggleViewAction());
-```
-## MainMenuBar
-The menu bar provides the primary user actions such as creating a “new stage” or “opening” an existing one.
-```cpp
-QAction* newStageAction = new QAction("New Stage", this);
-QAction* openStageAction = new QAction("Open Stage", this);
-QAction* quitAction = new QAction("Quit", this);
-```
-# Executable Demo
-
-<img width="1131" height="846" alt="Screenshot 2026-02-20 180244" src="https://github.com/user-attachments/assets/5cc72f6a-3f16-409e-b307-0350e793635e" />
+# Revelant Api Documentations
+- [**Hd** : The Hydra Framework](https://openusd.org/docs/api/hd_page_front.html)
+- [**HdSt** : Rendering functionality for HdStorm](https://openusd.org/docs/api/hd_st_page_front.html)
+- [**HdStorm** : Real-time Hydra renderer plugin](https://openusd.org/docs/api/hd_storm_page_front.html)
+- [**Hdx** : Hydra extensions](https://openusd.org/docs/api/hdx_page_front.html)
