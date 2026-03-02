@@ -1,6 +1,8 @@
 #include "viewportEngine.h"
 #include "camera/usdCamera.h"
-#include <pxr/usd/usd/prim.h>
+
+#include <pxr/imaging/hd/rendererPluginRegistry.h>
+#include <pxr/imaging/hgi/tokens.h>
 
 PXR_NAMESPACE_USING_DIRECTIVE
 
@@ -9,73 +11,127 @@ namespace HVW_NS
 
 void ViewportEngine::initialize(const PXR_NS::UsdStageRefPtr& stage)
 {
-    PXR_NS::SdfPathVector excludedPaths;
-    m_engine = std::make_unique<PXR_NS::UsdImagingGLEngine>(stage->GetPseudoRoot().GetPath(), excludedPaths);
+    // create the Render Delegate (Storm in this case)
+    PXR_NS::HdRendererPluginRegistry& registry = PXR_NS::HdRendererPluginRegistry::GetInstance();
+    m_renderDelegatePtr = registry.CreateRenderDelegate(pxr::TfToken("HdStormRendererPlugin"));
 
-    // camera light
-    m_cameraLight.SetAmbient({ 0.1, 0.1, 0.1, 1.0 });
-    m_cameraLight.SetDiffuse({ 1.0, 1.0, 1.0, 1.f });
-    m_cameraLight.SetSpecular({ 0.1, 0.1, 0.1, 1.f });
-    m_cameraLight.SetPosition({ 10, 10, 10, 1.0 });
-    m_lights.push_back(m_cameraLight);
+    // create Hgi (Graphics Interface) + Driver
+    // You can also use a Helper function ( CreatePlatformDefaultHgi ) 
+    // to return a Hgi object for the current platform.
+    m_hgiPtr = Hgi::CreateNamedHgi(HgiTokens->OpenGL);
+    m_hgiDriver = { PXR_NS::HgiTokens->renderDriver, PXR_NS::VtValue(m_hgiPtr.get()) };
+    m_renderIndexPtr.reset(PXR_NS::HdRenderIndex::New( m_renderDelegatePtr.Get(), {&m_hgiDriver} ));
+
+    // create the Render Index
+    m_sceneDelegatePtr = std::make_unique<PXR_NS::UsdImagingDelegate>(m_renderIndexPtr.get(), PXR_NS::SdfPath("/"));
+
+    // populate Hydra from the USD stage
+    m_sceneDelegatePtr->Populate(stage->GetPseudoRoot());
+
+    // task controller
+    auto controllerID = "/MyUniqueTaskControllerID";
+    m_taskControllerPtr = std::make_unique<PXR_NS::HdxTaskController>(m_renderIndexPtr.get(), PXR_NS::SdfPath(controllerID));
+
+    // Specify which render tags we want to draw
+    // Render tags determine which categories of primitives will be drawn.
+    // Common tags include:
+    // geometry: Regular scene geometry
+    // render: Renderable objects
+    // guide: Guides and helpers
+    // proxy: Proxy representations
+    m_taskControllerPtr->SetRenderTags({ PXR_NS::HdRenderTagTokens->geometry, PXR_NS::HdRenderTagTokens->render });
+
+    // Enable / disable presenting the render to bound framebuffer.
+    // When enabled: Hydra renders into an to a bound framebuffer.bliting happens using HdxPresentTask
+    // If disabled: You are responsible for presenting the result yourself.
+    m_taskControllerPtr->SetEnablePresentation(true);
+
+    // Set the list of outputs to be rendered. You could add extra outout ( e.g depth, normal, primId, etc. )
+    m_taskControllerPtr->SetRenderOutputs({ PXR_NS::HdAovTokens->color });
+
+    // Color correction
+    PXR_NS::HdxColorCorrectionTaskParams colorParams;
+    colorParams.colorCorrectionMode = PXR_NS::HdxColorCorrectionTokens->sRGB;
+    m_taskControllerPtr->SetColorCorrectionParams(colorParams);
+
+    // We need to SetTaskContextData for selection
+    // Without it, Hydra may throw errors when tasks try to access the selection state:
+    // Coding Error: in _GetTaskContextData Token selectionState missing from task context
+    HdxSelectionTrackerSharedPtr selectionTracker = std::make_shared<pxr::HdxSelectionTracker>();
+    m_engine.SetTaskContextData(
+        pxr::HdxTokens->selectionState,
+        pxr::VtValue(selectionTracker)
+    );
+
+    // Create a simple light context
+    m_pLightingContext = PXR_NS::GlfSimpleLightingContext::New();
+}
+
+ViewportEngine::~ViewportEngine()
+{
+    // The order is important here
+    m_taskControllerPtr  = nullptr;
+    m_sceneDelegatePtr   = nullptr;
+    m_renderIndexPtr     = nullptr;
+    m_renderDelegatePtr  = nullptr;
 }
 
 void ViewportEngine::render(const PXR_NS::UsdStageRefPtr& stage, 
                             UsdCamera* camera,
                             double width, double height)
 {
-
+    // Updating the camera state and Setting the view and projection matrices for the free camera
     camera->setAspectRatio(width / std::max(1.0, height));
     camera->updateTransform();
+    auto cameraFrustum = camera->getCamera().GetFrustum();
+    m_taskControllerPtr->SetFreeCameraMatrices(cameraFrustum.ComputeViewMatrix(), cameraFrustum.ComputeProjectionMatrix());
 
-    // update camera light position
-    GfVec3d cameraPos = camera->getCamera().GetFrustum().GetPosition();
-    m_cameraLight.SetPosition(GfVec4f(cameraPos[0], cameraPos[1], cameraPos[2], 1.0));
-    m_cameraLight.SetTransform(camera->getCamera().GetTransform());
+    // Camera Light
+    auto cameraPosition = camera->getCamera().GetTransform().ExtractTranslation();
+    m_cameraLight.SetAmbient(PXR_NS::GfVec4f(0.1f, 0.1f, 0.1f, 1.0f));
+    m_cameraLight.SetPosition(PXR_NS::GfVec4f((float)cameraPosition[0], (float)cameraPosition[1], (float)cameraPosition[2], 1.f));
 
-    // update the light state
-    m_lights[0] = m_cameraLight;
+    m_pLightingContext->SetLights({m_cameraLight});
+    m_pLightingContext->SetSceneAmbient(PXR_NS::GfVec4f(0.1f, 0.1f, 0.1f, 1.0f));
+    m_pLightingContext->SetUseLighting(true);
 
-    PXR_NS::GlfSimpleMaterial defaultMaterial;
-    defaultMaterial.SetDiffuse(GfVec4f(0.8f, 0.8f, 0.8f, 1.0f)); 
-    defaultMaterial.SetSpecular(GfVec4f(0.0f, 0.0f, 0.0f, 1.0f));
-    defaultMaterial.SetEmission(GfVec4f(0.0f));
-    defaultMaterial.SetShininess(0.0f);
+    m_taskControllerPtr->SetLightingState(m_pLightingContext);
 
-    GfVec4f defaultAmbient(0.2f, 0.2f, 0.2f, 1.0f);
+    // Optional: settoing the Color AOV Clear Value
+    // AOVs are defined via HdAovDescriptor and managed by the HdRenderPassState. 
+    // The backend renderer (e.g., HdStormRendererPlugin for OpenGL) populates these buffers during execution.
+    PXR_NS::HdAovDescriptor aovDesc = m_taskControllerPtr->GetRenderOutputSettings(PXR_NS::HdAovTokens->color);
+    aovDesc.clearValue = PXR_NS::VtValue(PXR_NS::GfVec4f(0.5f, 0.7f, 0.5f, 1.f));
+    m_taskControllerPtr->SetRenderOutputSettings(PXR_NS::HdAovTokens->color, aovDesc);
 
-    m_engine->SetLightingState(m_lights, defaultMaterial, defaultAmbient);
+    // define where Hydra should render within the framebuffer.
+    // (0, 0) : lower-left corner
+    // width, height : viewport dimensions in pixels.
+    m_taskControllerPtr->SetRenderViewport(PXR_NS::GfVec4f(0, 0, static_cast<float>(width), static_cast<float>(height)));
 
-    m_engine->SetCameraState(camera->getViewMatrix(), camera->getProjectionMatrix());
+    // Set the size of the render buffers baking the AOVs.
+    // GUI applications should set this to the size of the window.
+    m_taskControllerPtr->SetRenderBufferSize(PXR_NS::GfVec2i(width, height));
 
-    m_engine->SetRenderViewport(PXR_NS::GfVec4d(0, 0, width, height));
-
-    m_renderParams.cullStyle = UsdImagingGLCullStyle::CULL_STYLE_BACK_UNLESS_DOUBLE_SIDED;
-    m_renderParams.clearColor = GfVec4f(0.2f, 0.2f, 0.2f, 1.0f);
-    m_renderParams.forceRefresh = false;
-    m_renderParams.enableLighting = true;
-    m_renderParams.enableSampleAlphaToCoverage = false;
-    m_renderParams.enableSceneMaterials = true;
-    m_renderParams.enableSceneLights = true;
-    m_renderParams.flipFrontFacing = true;
-    m_renderParams.gammaCorrectColors = true;
-    m_renderParams.highlight = true;
-    m_renderParams.showGuides = true;
-    m_renderParams.showProxy = true;
-    m_renderParams.showRender = true;
-    m_renderParams.complexity = 1.0;
-
-    m_engine->Render(stage->GetPseudoRoot(), m_renderParams);
+    // setting per-frame rendering options for Hydra tasks
+    PXR_NS::HdxRenderTaskParams params;
+    params.enableLighting = true;
+    m_taskControllerPtr->SetRenderParams(params);
+    
+    // This is the final step of our Hydra frame rendering
+    // actually executing the tasks and producing the final rendered image.
+    PXR_NS::HdTaskSharedPtrVector tasks = m_taskControllerPtr->GetRenderingTasks();
+    m_engine.Execute(m_renderIndexPtr.get(), &tasks);
 }
 
 std::string ViewportEngine::rendererName() const
 {
-    return m_engine->GetRendererDisplayName(m_engine->GetCurrentRendererId());
+    return "HdStormRendererPlugin";
 }
 
 std::string ViewportEngine::hgiName() const
 {
-    return m_engine->GetHgi()->GetAPIName().GetString();
+    return m_hgiPtr->GetAPIName().GetString();
 }
 
 } // namespace HVW_NS
