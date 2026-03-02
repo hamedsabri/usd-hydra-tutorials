@@ -10,8 +10,9 @@ A hands-on tutorial project that walks through building a Qt-based 3D applicatio
 1. [Building a Minimal Qt Application with OpenGL Viewport](https://github.com/hamedsabri/usd-hydra-tutorials/tree/tutorial_1)
 2. [Basic Hydra Concepts](https://github.com/hamedsabri/usd-hydra-tutorials/tree/tutorial_2)
 3. [Viewport Implemenation Using **UsdImagingGLEngine** API](https://github.com/hamedsabri/usd-hydra-tutorials/tree/tutorial_3)
-4. [Viewport Implemenation Using **Hydra1.0 API**](https://github.com/hamedsabri/usd-hydra-tutorials/tree/tutorial_4)
+4. [Viewport Implemenation Using **Hydra 1.0 API**](https://github.com/hamedsabri/usd-hydra-tutorials/tree/tutorial_4)
 5. [Custom Presenation](https://github.com/hamedsabri/usd-hydra-tutorials/tree/tutorial_4_custom_presenation)
+6. [Viewport Implemenation Using **Hydra 2.0 API**](https://github.com/hamedsabri/usd-hydra-tutorials/tree/tutorial_5)
    
 # References
 - [hydra-viewport-toolbox](https://github.com/Autodesk/hydra-viewport-toolbox)
