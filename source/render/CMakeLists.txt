@@ -4,4 +4,5 @@
 target_sources(${TARGET_NAME}
     PRIVATE
         viewportEngine.cpp
+        drawTarget.cpp
 )

@@ -24,6 +24,9 @@ ViewportOpenGLWidget::ViewportOpenGLWidget(UsdDocument* document, QWidget* paren
 void ViewportOpenGLWidget::initializeGL()
 {
     initializeOpenGLFunctions();
+
+    m_drawTarget = std::make_unique<DrawTarget>();
+    m_drawTarget->initialize();
 }
 
 void ViewportOpenGLWidget::initialize()
@@ -33,9 +36,10 @@ void ViewportOpenGLWidget::initialize()
     }
 
     m_camera = std::make_unique<UsdCamera>(m_usdDocument->getCurrentStage());
+
     m_viewportEngine = std::make_unique<ViewportEngine>();
     m_viewportEngine->initialize(m_usdDocument->getCurrentStage());
-
+    
     qDebug() << "[Viewport] Created.";
     qDebug() << "[Viewport]"
              << QStringLiteral("Renderer: %1").arg(QString::fromStdString(m_viewportEngine->rendererName()))
@@ -66,6 +70,7 @@ void ViewportOpenGLWidget::paintGL()
     }
 
     m_viewportEngine->render(m_usdDocument->getCurrentStage(), m_camera.get(), m_width, m_height);
+    m_drawTarget->draw(m_viewportEngine->getColorAovTextureId());
 }
 
 void ViewportOpenGLWidget::onStageOpened(const QString& filePath)
@@ -77,6 +82,10 @@ void ViewportOpenGLWidget::onStageOpened(const QString& filePath)
 
 void ViewportOpenGLWidget::wheelEvent(QWheelEvent* event)
 {
+    if (!m_camera) {
+        return;
+    }
+
     double angleDelta = static_cast<double>(event->angleDelta().y()) / 1000.0;
     m_camera->adjustDistance(1.0 - std::max(-0.5, std::min(0.5, angleDelta)));
 
@@ -85,6 +94,10 @@ void ViewportOpenGLWidget::wheelEvent(QWheelEvent* event)
 
 void ViewportOpenGLWidget::mousePressEvent(QMouseEvent* event)
 {
+    if (!m_camera) {
+        return;
+    }
+
     m_lastMousePosition = event->pos() * devicePixelRatio();
 
     if (event->modifiers() & (Qt::AltModifier | Qt::MetaModifier))
@@ -106,6 +119,10 @@ void ViewportOpenGLWidget::mousePressEvent(QMouseEvent* event)
 
 void ViewportOpenGLWidget::mouseMoveEvent(QMouseEvent* event)
 {
+    if (!m_camera) {
+        return;
+    }
+
     QPoint currentMousePosition = event->pos() * devicePixelRatio();
 
     QPoint delta = currentMousePosition - m_lastMousePosition;
@@ -136,6 +153,9 @@ void ViewportOpenGLWidget::mouseMoveEvent(QMouseEvent* event)
 
 void ViewportOpenGLWidget::mouseReleaseEvent(QMouseEvent* event)
 {
+    if (!m_camera) {
+        return;
+    }
     m_camera->setDragMode(UsdCamera::DragMode::NONE);
 }
 

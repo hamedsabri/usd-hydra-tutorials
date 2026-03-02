@@ -5,6 +5,7 @@
 
 #include "camera/usdCamera.h"
 #include "render/viewportEngine.h"
+#include "render/drawTarget.h"
 
 namespace HVW_NS
 {
@@ -39,11 +40,13 @@ private:
     UsdDocument*                    m_usdDocument;
     std::unique_ptr<ViewportEngine> m_viewportEngine;
     std::unique_ptr<UsdCamera>      m_camera;
+    std::unique_ptr<DrawTarget>     m_drawTarget;
 
     double                          m_height{1};
     double                          m_width{1};
 
     QPoint                          m_lastMousePosition;
+
 };
 
 } // namespace HVW_NS

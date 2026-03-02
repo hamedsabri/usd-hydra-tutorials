@@ -1,8 +1,11 @@
 #include "viewportEngine.h"
 #include "camera/usdCamera.h"
 
+#include <pxr/imaging/glf/drawTarget.h>
 #include <pxr/imaging/hd/rendererPluginRegistry.h>
 #include <pxr/imaging/hgi/tokens.h>
+#include <pxr/imaging/hgiGL/texture.h>
+#include <pxr/usd/usd/stage.h>
 
 PXR_NAMESPACE_USING_DIRECTIVE
 
@@ -44,7 +47,7 @@ void ViewportEngine::initialize(const PXR_NS::UsdStageRefPtr& stage)
     // Enable / disable presenting the render to bound framebuffer.
     // When enabled: Hydra renders into an to a bound framebuffer.bliting happens using HdxPresentTask
     // If disabled: You are responsible for presenting the result yourself.
-    m_taskControllerPtr->SetEnablePresentation(true);
+    m_taskControllerPtr->SetEnablePresentation(false);
 
     // Set the list of outputs to be rendered. You could add extra outout ( e.g depth, normal, primId, etc. )
     m_taskControllerPtr->SetRenderOutputs({ PXR_NS::HdAovTokens->color });
@@ -113,8 +116,15 @@ void ViewportEngine::render(const PXR_NS::UsdStageRefPtr& stage,
     // GUI applications should set this to the size of the window.
     m_taskControllerPtr->SetRenderBufferSize(PXR_NS::GfVec2i(width, height));
 
+    // Render the camera image from (0,0) to (width,height) directly into a buffer of the same size
+    PXR_NS::GfRange2f displayWindow(PXR_NS::GfVec2f(0, 0), PXR_NS::GfVec2f( static_cast<float>(width), static_cast<float>(height) ) );
+    PXR_NS::GfRect2i renderBufferRect(PXR_NS::GfVec2i(0, 0), width, height);
+    PXR_NS::CameraUtilFraming framing(displayWindow, renderBufferRect);
+    m_taskControllerPtr->SetFraming(framing);
+
     // setting per-frame rendering options for Hydra tasks
     PXR_NS::HdxRenderTaskParams params;
+    params.viewport = PXR_NS::GfVec4f(0, 0, static_cast<float>(width), static_cast<float>(height));
     params.enableLighting = true;
     m_taskControllerPtr->SetRenderParams(params);
     
@@ -132,6 +142,36 @@ std::string ViewportEngine::rendererName() const
 std::string ViewportEngine::hgiName() const
 {
     return m_hgiPtr->GetAPIName().GetString();
+}
+
+uint32_t ViewportEngine::getColorAovTextureId() const
+{
+    PXR_NS::VtValue aov;
+    //  ask the engine for the data associated with the "color" AOV.
+    //  This is stored in the task context after rendering tasks execute.
+    if (!m_engine.GetTaskContextData(PXR_NS::HdAovTokens->color, &aov)) {
+        return 0;  // No color AOV data available → render probably didn't produce it or failed
+    }
+
+    // check if the retrieved value actually holds an HgiTextureHandle
+    if (!aov.IsHolding<PXR_NS::HgiTextureHandle>()) {
+        return 0;
+    }
+
+    // check if the texture handle is valid
+    PXR_NS::HgiTextureHandle texHandle = aov.Get<PXR_NS::HgiTextureHandle>();
+    if (!texHandle) {
+        return 0;
+    }
+
+    // since we're using the OpenGL backend (Storm with HgiGL), cast to the GL-specific subclass.
+    PXR_NS::HgiGLTexture* glTex = dynamic_cast<PXR_NS::HgiGLTexture*>(texHandle.Get());
+    if (!glTex) {
+        return 0;
+    }
+
+    // finally retrieve the OpenGL texture name/ID.
+    return glTex->GetTextureId();
 }
 
 } // namespace HVW_NS

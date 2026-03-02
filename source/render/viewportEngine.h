@@ -29,6 +29,8 @@ public:
                 UsdCamera* camera,
                 double width, double height);
 
+    uint32_t getColorAovTextureId() const;
+
     std::string rendererName() const;
     std::string hgiName() const;
 
