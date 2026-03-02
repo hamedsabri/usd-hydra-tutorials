@@ -43,7 +43,7 @@ enableSceneMaterials – Enables or disables material shading.
 cullStyle – Controls backface/frontface culling behavior.
 clearColor – Defines the background color.
 
-```
+```cpp
 void ViewportEngine::render(const PXR_NS::UsdStageRefPtr& stage, 
                             UsdCamera* camera,
                             double width, double height)
@@ -72,7 +72,6 @@ void ViewportEngine::render(const PXR_NS::UsdStageRefPtr& stage,
 
     m_engine->Render(stage->GetPseudoRoot(), m_renderParams);
 }
-
 ```
 # Camera
 UsdCamera is a simple interactive camera controller built on `pxr::GfCamera` that provides orbit, pan, dolly, zoom, framing, and clipping controls for navigating a USD scene within a viewport.
@@ -81,7 +80,7 @@ UsdCamera is a simple interactive camera controller built on `pxr::GfCamera` tha
 `getProjectionMatrix()` returns the projection matrix
 `updateTransform()` recalculates and applies the camera’s transform
 
-```
+```cpp
 void ViewportEngine::render(const PXR_NS::UsdStageRefPtr& stage, 
                             UsdCamera* camera,
                             double width, double height)
@@ -98,7 +97,7 @@ void ViewportEngine::render(const PXR_NS::UsdStageRefPtr& stage,
 # ViewportOpenGLWidget
 ViewportOpenGLWidget is an OpenGL viewport that integrates UsdImagingGLEngine into a QOpenGLWidget, managing the GL context, user interaction, camera control, and delegating actual scene drawing to ViewportEngine.
 
-```
+```cpp
 void ViewportOpenGLWidget::initialize()
 {
     if (!m_usdDocument->getCurrentStage()) {
