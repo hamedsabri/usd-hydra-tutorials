@@ -1,126 +1,200 @@
-# UsdImagingGLEngine
+# Custom Presentation 
+When presentation flag is enabled (this by default), HdxTaskController automatically includes an HdxPresentTask in the render task chain. This task handles the final compositing of Hydra's rendered AOVs (primarily the color buffer, and optionally depth) onto the currently bound framebuffer which is typically your application's default OpenGL framebuffer (e.g., the Qt window's back buffer). It then performs any necessary format conversion, gamma correction, or simple blitting/compositing, so the rendered result appears on screen without additional work from your application.
+When presenation is didabled, Hydra skips the HdxPresentTask entirely. This means, No automatic compositing or blitting occurs from Hydra to your framebuffer and you become fully responsible for presenting the rendered result yourself. Common use cases could be Offscreen rendering, Custom compositing, etc...
 
-UsdImagingGLEngine serves as the main high-level entry point / convenience API for rendering USD scenes in an OpenGL context. This is a convenience layer that wraps Hydra engine (HdEngine) to make rendering a USD stage straightforward in an existing OpenGL context.
+## Retrieving the Color AOV Texture from Hydra
 
-With UsdImagingGLEngine, you can easily render a USD stage, set up render parameters using `UsdImagingGLRenderParams`, and call simple functions like `Render()`, `TestIntersection()` without dealing with the underlying Hydra components such as the scene delegate / index , render index, or tasks.
-
-- [UsdImagingGLEngine Class Reference](https://openusd.org/24.08/api/class_usd_imaging_g_l_engine.html)
-- [UsdImagingGLRenderParams Class Reference](https://openusd.org/24.08/api/class_usd_imaging_g_l_render_params.html#details)
-
-Here, we are going to implement a bare-minimum code required to render a USD stage in a viewport powered by UsdImagingGLEngine. For the sake of simplicity, I won’t be covering Qt or CMake build configuration, as this material assumes you’re already familiar with both.
-
-# How to Build
-In order to build the project in this branch, you just need to provide additional path to openusd install directory:
-
+Let's start disabling the default behaviour presenation and when you run and load a USD stage, you shouldn't see anything drawn anymore.
+```cpp
+ m_taskControllerPtr->SetEnablePresentation(false);
 ```
-cmake -GNinja -DCMAKE_MAKE_PROGRAM="<path_to_ninja_exe>" -DQT_LOCATION="<path_to_qt_install_directory>" -DOPENUSD_LOCATION="<path_to_openusd_install_directory>" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX="<install_path>" ..
-```
-
-# Creating a New Stage and Opening a Stage from File
-To support creating and loading USD stages, we introduce a small HVW_NS::UsdDocument class. This class owns the currently `active UsdStage` and exposes a simple interface for either creating a new in-memory stage or opening an existing stage from disk.
-
-## HVW_NS::UsdDocument
-This class provides two main functions:
-
-1. `createNewStageInMemory`: creates a fresh stage in memory
-2. `openStage`: loads a stage from a file
-
-In both cases, the active stage is stored internally and a stageOpened signal is emitted so the rest of the application can react to the change.
-
-# ViewportEngine
-ViewportEngine is simply a wrapper around OpenUSD’s UsdImagingGLEngine that initializes and manages a Hydra-based OpenGL renderer for drawing a UsdStage with a given camera and render settings.
-
-**SetCameraState**: to define the camera's view and projection matrices
-**SetRenderViewport**: to define the render area
-**Render**: to execute the Hydra render pass
-
-`UsdImagingGLRenderParams` controls how the scene is rendered. It basically defines rendering behavior such as:
-
-enableLighting – Toggles scene lighting on or off.
-drawMode – Controls how geometry is drawn (e.g., shaded, wireframe).
-showGuides / showProxy / showRender – Determines which purpose types are visible.
-enableSceneMaterials – Enables or disables material shading.
-cullStyle – Controls backface/frontface culling behavior.
-clearColor – Defines the background color.
-
-```
-void ViewportEngine::render(const PXR_NS::UsdStageRefPtr& stage, 
-                            UsdCamera* camera,
-                            double width, double height)
+We retrieve the OpenGL texture ID for the rendered color AOV by querying the task context from HdEngine, extracting the HgiTextureHandle, casting it to the OpenGL-specific HgiGLTexture, and then calling GetTextureId().
+```cpp
+uint32_t ViewportEngine::getColorAovTextureId() const
 {
+    PXR_NS::VtValue aov;
+    //  ask the engine for the data associated with the "color" AOV.
+    //  This is stored in the task context after rendering tasks execute.
+    if (!m_engine.GetTaskContextData(PXR_NS::HdAovTokens->color, &aov)) {
+        return 0;  // No color AOV data available → render probably didn't produce it or failed
+    }
 
-    camera->setAspectRatio(width / std::max(1.0, height));
-    camera->updateTransform();
-    m_engine->SetCameraState(camera->getViewMatrix(), camera->getProjectionMatrix());
+    // check if the retrieved value actually holds an HgiTextureHandle
+    if (!aov.IsHolding<PXR_NS::HgiTextureHandle>()) {
+        return 0;
+    }
 
-    m_engine->SetRenderViewport(PXR_NS::GfVec4d(0, 0, width, height));
+    // check if the texture handle is valid
+    PXR_NS::HgiTextureHandle texHandle = aov.Get<PXR_NS::HgiTextureHandle>();
+    if (!texHandle) {
+        return 0;
+    }
 
-    m_renderParams.cullStyle = UsdImagingGLCullStyle::CULL_STYLE_BACK_UNLESS_DOUBLE_SIDED;
-    m_renderParams.clearColor = GfVec4f(0.2f, 0.2f, 0.2f, 1.0f);
-    m_renderParams.forceRefresh = false;
-    m_renderParams.enableLighting = false;
-    m_renderParams.enableSampleAlphaToCoverage = false;
-    m_renderParams.enableSceneMaterials = true;
-    m_renderParams.enableSceneLights = true;
-    m_renderParams.flipFrontFacing = true;
-    m_renderParams.gammaCorrectColors = true;
-    m_renderParams.highlight = true;
-    m_renderParams.showGuides = true;
-    m_renderParams.showProxy = true;
-    m_renderParams.showRender = true;
-    m_renderParams.complexity = 1.0;
+    // since we're using the OpenGL backend (Storm with HgiGL), cast to the GL-specific subclass.
+    PXR_NS::HgiGLTexture* glTex = dynamic_cast<PXR_NS::HgiGLTexture*>(texHandle.Get());
+    if (!glTex) {
+        return 0;
+    }
 
-    m_engine->Render(stage->GetPseudoRoot(), m_renderParams);
-}
-
-```
-# Camera
-UsdCamera is a simple interactive camera controller built on `pxr::GfCamera` that provides orbit, pan, dolly, zoom, framing, and clipping controls for navigating a USD scene within a viewport.
-
-`getViewMatrix()` returns the camera’s view matrix
-`getProjectionMatrix()` returns the projection matrix
-`updateTransform()` recalculates and applies the camera’s transform
-
-```
-void ViewportEngine::render(const PXR_NS::UsdStageRefPtr& stage, 
-                            UsdCamera* camera,
-                            double width, double height)
-{
-
-    camera->setAspectRatio(width / std::max(1.0, height));
-    camera->updateTransform();
-    m_engine->SetCameraState(camera->getViewMatrix(), camera->getProjectionMatrix());
-
-    ...
+    // finally retrieve the OpenGL texture name/ID.
+    return glTex->GetTextureId();
 }
 ```
+### Draw target
+Next, we create a simple draw target for presenting Hydra’s rendered output to the screen. Since the color AOV is produced as an OpenGL texture, this class simply draws that texture onto a full-screen quad.
 
-# ViewportOpenGLWidget
-ViewportOpenGLWidget is an OpenGL viewport that integrates UsdImagingGLEngine into a QOpenGLWidget, managing the GL context, user interaction, camera control, and delegating actual scene drawing to ViewportEngine.
-
-```
-void ViewportOpenGLWidget::initialize()
+```cpp
+namespace
 {
-    if (!m_usdDocument->getCurrentStage()) {
+const char* vertexShaderSrc = R"(#version 450 core
+    layout(location = 0) in vec2 aPos;
+    layout(location = 1) in vec2 aTexCoord;
+    out vec2 TexCoord;
+    void main()
+    {
+        TexCoord = aTexCoord;
+        gl_Position = vec4(aPos, 0.0, 1.0);
+    }
+    )";
+
+const char* fragmentShaderSrc = R"(#version 450 core
+        in vec2 TexCoord;
+        out vec4 FragColor;
+        uniform sampler2D screenTexture;
+
+        void main()
+        {
+            vec4 linearColor = texture(screenTexture, TexCoord);
+            FragColor = vec4(linearColor.rgb, linearColor.a);
+        }
+    )";
+} // namespace
+
+namespace HVW_NS
+{
+
+DrawTarget::DrawTarget()
+{
+    initializeOpenGLFunctions();
+}
+
+DrawTarget::~DrawTarget()
+{
+    if (m_vbo) glDeleteBuffers(1, &m_vbo);
+    if (m_vao) glDeleteVertexArrays(1, &m_vao);
+    if (m_shaderProgram) glDeleteProgram(m_shaderProgram);
+}
+
+void DrawTarget::initialize()
+{
+    createShaders();
+    initializeQuad();
+}
+
+void DrawTarget::createShaders()
+{
+    GLuint vs = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vs, 1, &vertexShaderSrc, nullptr);
+    glCompileShader(vs);
+
+    GLint success = 0;
+    glGetShaderiv(vs, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        char infoLog[1024];
+        glGetShaderInfoLog(vs, 1024, nullptr, infoLog);
+        qWarning() << "Vertex shader compilation failed:\n" << infoLog;
+        glDeleteShader(vs);
         return;
     }
 
-    m_camera = std::make_unique<UsdCamera>(m_usdDocument->getCurrentStage());
-    m_viewportEngine = std::make_unique<ViewportEngine>();
-    m_viewportEngine->initialize(m_usdDocument->getCurrentStage());
+    GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fs, 1, &fragmentShaderSrc, nullptr);
+    glCompileShader(fs);
 
-    qDebug() << "[Viewport] Created.";
-    qDebug() << "[Viewport]"
-             << QStringLiteral("Renderer: %1").arg(QString::fromStdString(m_viewportEngine->rendererName()))
-             << QStringLiteral("Hgi: %1").arg(QString::fromStdString(m_viewportEngine->hgiName()));
+    glGetShaderiv(fs, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        char infoLog[1024];
+        glGetShaderInfoLog(fs, 1024, nullptr, infoLog);
+        qWarning() << "Fragment shader compilation failed:\n" << infoLog;
+        glDeleteShader(vs);
+        glDeleteShader(fs);
+        return;
+    }
+
+    m_shaderProgram = glCreateProgram();
+    glAttachShader(m_shaderProgram, vs);
+    glAttachShader(m_shaderProgram, fs);
+    glLinkProgram(m_shaderProgram);
+
+    glDeleteShader(vs);
+    glDeleteShader(fs);
 }
 
-void ViewportOpenGLWidget::resizeGL(int w, int h)
+void DrawTarget::initializeQuad()
 {
-    m_width = w * devicePixelRatio();
-    m_height = h * devicePixelRatio();
+    static const float quadVertices[] = {
+        // pos      // uv
+        -1.f,  1.f, 0.f, 1.f,
+         1.f,  1.f, 1.f, 1.f,
+         1.f, -1.f, 1.f, 0.f,
+        -1.f, -1.f, 0.f, 0.f
+    };
 
-    glViewport(0, 0, w, h);
+    glGenVertexArrays(1, &m_vao);
+    glGenBuffers(1, &m_vbo);
+
+    glBindVertexArray(m_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)0);
+
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)(2*sizeof(float)));
+
+    glBindVertexArray(0);
+}
+
+void DrawTarget::draw(uint32_t textureId)
+{
+    if (textureId == 0)
+        return;
+
+    glDisable(GL_DEPTH_TEST);
+
+    glUseProgram(m_shaderProgram);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textureId);
+    glUniform1i(glGetUniformLocation(m_shaderProgram, "screenTexture"), 0);
+
+    glBindVertexArray(m_vao);
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    glBindVertexArray(0);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glUseProgram(0);
+}
+
+} // namespace HVW_NS
+```
+Inside ViewportOpenGLWidget, we now create a DrawTarget object to render Hydra’s color output texture onto the screen.
+
+```h
+std::unique_ptr<DrawTarget> m_drawTarget;
+```
+To ensure all OpenGL resources are created safely, we move the initialization of the `DrawTarget` object into the `initializeGL()` method as this the only place where Qt guarantees an active and current OpenGL context. The `paintGL()` function now simply renders the USD scene via the viewport engine, and uses our `DrawTarget` to blit the resulting color texture (AOV) to the screen as a full-screen textured quad.
+
+```cpp
+void ViewportOpenGLWidget::initializeGL()
+{
+    initializeOpenGLFunctions();
+
+    m_drawTarget = std::make_unique<DrawTarget>();
+    m_drawTarget->initialize();
 }
 
 void ViewportOpenGLWidget::paintGL()
@@ -139,13 +213,28 @@ void ViewportOpenGLWidget::paintGL()
     }
 
     m_viewportEngine->render(m_usdDocument->getCurrentStage(), m_camera.get(), m_width, m_height);
+    m_drawTarget->draw(m_viewportEngine->getColorAovTextureId());
 }
 ```
-This covers the fundamental building blocks required to implement a minimal Hydra-based viewport using UsdImagingGLEngine.
-From here, you can explore more advanced topics such as selection, picking, custom render passes (e.g., using GlfDrawTargetRefPtr), and renderer AOVs by studying the following open-source projects:
+Lets do a very simple post-processing effect by offseting Red and Blue channels slighlty to create a glitchy look.
 
-- [tinkerusd](https://github.com/hamedsabri/TinkerUsd)
-- [usdtweak](https://github.com/cpichard/usdtweak)
+```glsl
+const char* fragmentShaderSrc = R"(#version 450 core
+    in vec2 TexCoord;
+    out vec4 FragColor;
+    uniform sampler2D screenTexture;
 
-# Executable Demo
-![demo](https://github.com/user-attachments/assets/66041b5d-7667-4273-9b57-9ec314aa3414)
+    void main()
+    {
+        vec2 rOffset = vec2(0.02, 0.0);
+        vec2 bOffset = vec2(-0.02, 0.0);
+
+        float r = texture(screenTexture, TexCoord + rOffset).r;
+        float g = texture(screenTexture, TexCoord).g;
+        float b = texture(screenTexture, TexCoord + bOffset).b;
+
+        FragColor = vec4(r, g, b, 1.0);
+    }
+)";
+```
+<img width="1209" height="998" alt="image" src="https://github.com/user-attachments/assets/64448f59-49e3-4aa8-87a4-938931baf1f3" />
