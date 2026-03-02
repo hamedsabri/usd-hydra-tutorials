@@ -29,6 +29,9 @@ public:
 private:
     Ptr                              m_engine;
     PXR_NS::UsdImagingGLRenderParams m_renderParams;
+
+    PXR_NS::GlfSimpleLight          m_cameraLight;
+    PXR_NS::GlfSimpleLightVector    m_lights;
 };
 
 } // namespace HVW_NS
