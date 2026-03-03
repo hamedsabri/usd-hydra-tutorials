@@ -2,7 +2,7 @@
 
 A hands-on tutorial series that walks through building a 3D application integrating Hydra rendering with an OpenGL backend. This includes direct usage of high-level [**UsdImagingGLEngine**](https://openusd.org/release/api/class_usd_imaging_g_l_engine.html#a733898309921f2ab6e323d4b907240fe) Api, explores the core architectural differences between low-level **Hydra 1.0** and [**Hydra 2.0**](https://openusd.org/release/api/_page__hydra__getting__started__guide.html) Apis, demonstrates how to implement and compare both pipelines, and showcases how to leverage the [**hydra-viewport-toolbox**](https://github.com/Autodesk/hydra-viewport-toolbox).
 
-**Note:** While Qt is used for windowing in this project, the core Hydra concepts are independent of the windowing system and as long as you supply a valid OpenGL context, the same rendering pipeline applies.
+**Note:** While this project uses Qt for windowing, the core Hydra concepts are independent of the windowing system. As long as a valid OpenGL context is provided, the same principles apply.
 
 <img width="1175" height="1002" alt="image" src="https://github.com/user-attachments/assets/c5e495dc-feae-4a26-b13a-cbb58910a4d8" />
 
