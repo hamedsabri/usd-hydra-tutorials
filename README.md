@@ -10,7 +10,7 @@ The Hydra Viewport Toolbox (HVT) is a collection of utilities designed to simpli
 - User interaction for common operations, e.g. selection and camera manipulation.
 
 ## How to Build HVT
-For build instructions, refer to the README page of the Hydra Viewport Toolbox repository. After building and installing the Hydra Viewport Toolbox, the installation directory should have a structure similar to the following:
+For build instructions, refer to the [**README**](https://github.com/Autodesk/hydra-viewport-toolbox/blob/main/README.md) page of the Hydra Viewport Toolbox repository. After building and installing the Hydra Viewport Toolbox, the installation directory should have a structure similar to the following:
 
 The include/hvt directory contains the public headers you will use in your application. The lib folder provides the compiled libraries and CMake configuration files required for integration, and bin contains runtime binaries.
 
