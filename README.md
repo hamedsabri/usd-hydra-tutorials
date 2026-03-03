@@ -66,13 +66,6 @@ target_link_libraries(${TARGET_NAME}
         hvt::hvt
 )
 ```
-## Updating setupenv.bat
-In addition to configuring CMake, we must ensure that the runtime can locate the required DLLs. To do this, we extend setupenv.bat to append HVT’s lib and bin folders to PATH:
-```bash
-:: HVT
-set "PATH=%HVT_LOCATION%\lib;%HVT_LOCATION%\bin;%PATH%"
-```
-
 ## Implementing ViewportEngine using HVT
 
 This example demonstrates the bare-minimum setup required to render a USD stage using the Autodesk Hydra Viewport Toolbox. The goal is to strip the ViewportEngine class down to its essential components: creating an Hgi backend, building a Hydra render index, inserting a USD Scene Index, and executing a single FramePass.
