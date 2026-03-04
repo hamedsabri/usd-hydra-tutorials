@@ -59,7 +59,7 @@ if(hvt_FOUND)
     message(STATUS "Using hvt ${hvt_VERSION}")
 endif()
 ```
-After the package is found, simply link against the exported target. There is no need to manually add include directories or library paths. The hvt::hvt imported target already carries its include paths, compile definitions, and link dependencies.
+After the package is found, simply link against the exported target. There is no need to manually add include directories or library paths. The **hvt::hvt** imported target already carries its include paths, compile definitions, and link dependencies.
 ```cmake
 target_link_libraries(${TARGET_NAME}
     PRIVATE
