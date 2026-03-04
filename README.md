@@ -1,6 +1,6 @@
 # Minimal Viewport Implementation using Autodesk Hydra Viewport Toolbox
 
-The Hydra Viewport Toolbox (HVT) is a collection of utilities designed to simplify integrating OpenUSD Hydra into an application's graphics viewport. HVT currently includes the following features but it is being expanded to include even more.
+The [**Hydra Viewport Toolbox (HVT)**](https://github.com/Autodesk/hydra-viewport-toolbox) is a collection of utilities designed to simplify integrating OpenUSD Hydra into an application's graphics viewport. HVT currently includes the following features but it is being expanded to include even more.
 
 - Layering of Hydra render delegate output, optionally from different render delegates ("passes").
 - Management of multiple viewports.
