@@ -147,4 +147,5 @@ From here, you can explore more advanced topics such as selection, picking, cust
 - [usdtweak](https://github.com/cpichard/usdtweak)
 
 # Executable Demo
-![demo](https://github.com/user-attachments/assets/66041b5d-7667-4273-9b57-9ec314aa3414)
+![demo_tutorial3](https://github.com/user-attachments/assets/6b27d477-4a08-4796-b7fd-e1bafd270bd9)
+
