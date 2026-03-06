@@ -38,13 +38,14 @@ The Render Index uses an internal change tracker (HdChangeTracker) to mark only 
 Here are the diagram images that are often illustrate these three steps:
 
 **Screenshot taken from Pixar's Siggraph presentaion**
-<img width="848" height="697" alt="Screenshot 2026-02-22 171822" src="https://github.com/user-attachments/assets/38c64811-e944-46ca-a739-c7d8db23db7d" />
+<img width="848" height="697" alt="hydra_image" src="https://github.com/user-attachments/assets/c3d82721-f7f9-46c5-99df-51470d5b1095" />
+
 
 **Screenshot taken from Hydra - Nvidia Learn OpenUsd series**
-<img width="761" height="368" alt="Screenshot 2026-02-22 171955" src="https://github.com/user-attachments/assets/0bc8c735-40d5-4fc6-8639-7cb98b805a47" />
+<img width="761" height="368" alt="hydra_image2" src="https://github.com/user-attachments/assets/a39c5099-a72e-4ba7-9834-f180b47df9b1" />
 
 **Screenshot taken from Autodesk's Adding Vulkan to Pixar's Hydra Storm Renderer presentaion**
-<img width="1111" height="564" alt="Screenshot 2026-02-22 172010" src="https://github.com/user-attachments/assets/50b7b43a-98b4-4728-861e-dfced49bedb0" />
+<img width="1111" height="564" alt="hydra_image3" src="https://github.com/user-attachments/assets/cb7e4b37-a501-4b86-9bd3-b816462e1791" />
 
 ## Hydra 1.0 vs Hydra 2.0
 
