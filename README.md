@@ -183,4 +183,5 @@ QAction* quitAction = new QAction("Quit", this);
 ```
 # Executable Demo
 
-<img width="1131" height="846" alt="Screenshot 2026-02-20 180244" src="https://github.com/user-attachments/assets/5cc72f6a-3f16-409e-b307-0350e793635e" />
+<img width="1186" height="1002" alt="image" src="https://github.com/user-attachments/assets/00580392-8d32-4f8f-8a72-5dc008cfc479" />
+
