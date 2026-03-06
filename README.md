@@ -237,4 +237,5 @@ const char* fragmentShaderSrc = R"(#version 450 core
     }
 )";
 ```
-<img width="1209" height="998" alt="image" src="https://github.com/user-attachments/assets/64448f59-49e3-4aa8-87a4-938931baf1f3" />
+<img width="1285" height="998" alt="hydra_image4" src="https://github.com/user-attachments/assets/2d27df93-5534-44e1-bbac-c636ebda8ae2" />
+
