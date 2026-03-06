@@ -36,8 +36,6 @@ Destructor is no longer defaulted since we need to clean up Hydra objects.
 class UsdCamera;
 class ViewportEngine final
 {
-    using Ptr = std::unique_ptr<PXR_NS::UsdImagingGLEngine>;
-
 public:
     ViewportEngine() = default;
     ~ViewportEngine();
