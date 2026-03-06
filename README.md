@@ -58,7 +58,7 @@ If you recall, Hydra is conceptually built around three core components:
 2. Render Index – The central data structure that connects scene data to the renderer.
 3. Render Delegate – The backend renderer responsible for drawing (e.g., Storm).
 
-<img width="848" height="697" alt="Screenshot 2026-02-22 171822" src="https://github.com/user-attachments/assets/38c64811-e944-46ca-a739-c7d8db23db7d" />
+<img width="848" height="697" alt="hydra_image" src="https://github.com/user-attachments/assets/666577ac-6b77-410e-b343-fe452dd84ef1" />
 
 We also don't just create these three objects directly, we also need a few supporting pieces to make the pipeline functional, such as a task controller and GPU interface.
 
