@@ -227,8 +227,6 @@ void ViewportEngine::render(const PXR_NS::UsdStageRefPtr& stage,
 ```
 And that’s basically it! If you run the application now, you should be able to load a USD file and see it rendered in our Hydra-powered viewport. Note that we currently don’t have any scene lights, so everything will appear dark. Next, we’ll add a camera light to illuminate the scene.
 
-![demo_hydra2](https://github.com/user-attachments/assets/db08dae9-d2fe-410d-bf80-ee47078a9538)
-
 ```h
 pxr::GlfSimpleLight                         m_cameraLight;
 pxr::GlfSimpleLightingContextRefPtr         m_pLightingContext;
@@ -260,7 +258,8 @@ void ViewportEngine::render(const PXR_NS::UsdStageRefPtr& stage,
     m_taskControllerPtr->SetLightingState(m_pLightingContext);
 }
 ```
-![demo_hydra1](https://github.com/user-attachments/assets/9581b089-23a5-440b-b4fb-a71831b7d791)
+![demo_tutorial4](https://github.com/user-attachments/assets/3b6c58f9-41b3-492b-8981-aee66bb925e1)
+
 
 Lastly, let’s implement the functions to retrieve the renderer and HGI names for debugging purposes:
 ```cpp
