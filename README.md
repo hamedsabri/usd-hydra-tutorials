@@ -105,7 +105,7 @@ private:
 
 } // namespace HVW_NS
 ```
-At initialization time, the engine creates an Hgi instance using the OpenGL backend. Hgi (Hydra Graphics Interface) is the abstraction layer that allows Hydra to talk to the GPU. 
+At initialization time, the engine creates an Hgi instance using the OpenGL backend.
 
 ```cpp
 ViewportEngine::ViewportEngine()
