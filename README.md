@@ -2,8 +2,6 @@
 
 Switching to the new Hydra 2.0 architecture (also known as the Scene Index–based pipeline) is surprisingly straightforward. In essence, instead of creating a classic scene delegate as in Hydra 1.0, we construct a chain of Scene Indices and insert the resulting index into the render index. We still have a render delegate, a render index, and a task controller but the way scene data flows into Hydra is now driven through Scene Indices rather than a monolithic delegate.
 
-## USD Stage Scene Index
-
 The **stageSceneIndex** acts as the bridge between the USD stage and Hydra, while the **finalSceneIndex** represents the fully composed Scene Index chain that Hydra will consume.
 
 At this point, Hydra is aware of the scene graph and can begin translating USD prims into Hydra primitives internally. From there, we create an HdxTaskController, which is responsible for setting up and managing the render tasks (render task, selection task, lighting task, etc.) required to drive the frame.
