@@ -1,10 +1,8 @@
 # Minimal Viewport Implementation using Hydra 2.0 APIs
 
-Switching to the new Hydra 2.0 architecture (also known as the Scene Index–based pipeline) is surprisingly straightforward. In essence, instead of creating a classic scene delegate as in Hydra 1.0, we construct a chain of Scene Indices and insert the resulting index into the render index. We still have a render delegate, a render index, and a task controller but the way scene data flows into Hydra is now driven through Scene Indices rather than a monolithic delegate.
+Switching to the Hydra 2.0 architecture also known as the Scene Index–based pipeline is surprisingly straightforward. Rather than implementing a monolithic scene delegate as in Hydra 1.0, Hydra 2.0 builds the scene representation through a chain of Scene Indices. Each Scene Index can transform, filter, or augment the scene data before passing it downstream. Once this chain is assembled, the resulting **finalSceneIndex** is inserted into the render index, which becomes the entry point for scene data flowing into Hydra.
 
-The **stageSceneIndex** acts as the bridge between the USD stage and Hydra, while the **finalSceneIndex** represents the fully composed Scene Index chain that Hydra will consume.
-
-At this point, Hydra is aware of the scene graph and can begin translating USD prims into Hydra primitives internally. From there, we create an HdxTaskController, which is responsible for setting up and managing the render tasks (render task, selection task, lighting task, etc.) required to drive the frame.
+After inserting this Scene Index into the render index, Hydra becomes aware of the scene graph and begins translating USD prims into Hydra primitives internally.
 
 ```cpp
 PXR_NS::UsdImagingCreateSceneIndicesInfo info;
