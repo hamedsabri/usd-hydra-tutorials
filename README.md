@@ -54,6 +54,10 @@ Here are the diagram images that are often illustrate these three steps:
 
 Hydra 1.0 and Hydra 2.0 refer to two generations of the scene data handling architecure in OpenUSD's Hydra rendering architecture. The core goal remains the same which is decoupling scene description from rendering but Hydra 2.0 introduced granularity which brings major improvements in flexibility, extensibility, and support for procedural/runtime transformations. You can think of Hydra 2.0 as a `Composable SceneIndex pipeline` where scene is represented as a `chain of HdSceneIndex layers`. Each layer can Filter, Modify, and Procedurally generate data.
 
+**Screenshot taken from https://openusd.org/dev/api/_page__hydra__getting__started__guide.html**
+<img width="653" height="382" alt="usdimagingstagesceneindex_filters" src="https://github.com/user-attachments/assets/ffd0b3bc-31a1-4518-bc55-b05c68b2da8f" />
+
+
 # What is Storm (HdStorm)?
 
 Storm is Hydra's `real-time rasterizing render delegate`. Originally built on `OpenGL`, Storm later adopted the `Hydra Graphics Interface` (Hgi) an abstraction layer for modern low-level graphics APIs to enable broader support. A few years ago, the "HgiMetal" backend was added to leverage Apple's Metal API, significantly boosting performance on macOS and iOS. From Collaborative effort from Autodesk, Pixar, and Adobe the "HgiVulkan" backend was also introduced in `OpenUSD 24.08`.
