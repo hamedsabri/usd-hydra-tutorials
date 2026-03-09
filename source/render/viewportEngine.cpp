@@ -23,16 +23,10 @@ void ViewportEngine::initialize(const PXR_NS::UsdStageRefPtr& stage)
     m_hgiDriver = { PXR_NS::HgiTokens->renderDriver, PXR_NS::VtValue(m_hgiPtr.get()) };
     m_renderIndexPtr.reset(PXR_NS::HdRenderIndex::New( m_renderDelegatePtr.Get(), {&m_hgiDriver} ));
 
-    
     PXR_NS::UsdImagingCreateSceneIndicesInfo info;
     info.displayUnloadedPrimsWithBounds = false;
     info.stage                          = stage;
     const PXR_NS::UsdImagingSceneIndices sceneIndices = UsdImagingCreateSceneIndices(info);
-
-    // scene delegate
-    m_stageSceneIndex = sceneIndices.stageSceneIndex;
-    m_stageSceneIndex->SetStage(stage);
-    m_stageSceneIndex->SetTime(UsdTimeCode::Default());
 
     // insert scene index
     PXR_NS::HdSceneIndexBaseRefPtr usdSceneIndex = sceneIndices.finalSceneIndex;
@@ -81,7 +75,6 @@ ViewportEngine::~ViewportEngine()
 {
     // The order is important here
     m_taskControllerPtr  = nullptr;
-    m_stageSceneIndex    = nullptr;
     m_renderIndexPtr     = nullptr;
     m_renderDelegatePtr  = nullptr;
 }

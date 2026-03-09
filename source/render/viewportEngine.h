@@ -9,7 +9,6 @@
 
 #include <pxr/usdImaging/usdImagingGL/engine.h>
 #include <pxr/usdImaging/usdImaging/delegate.h>
-#include <pxr/usdImaging/usdImaging/stageSceneIndex.h>
 
 #include <memory>
 
@@ -34,8 +33,6 @@ public:
 
 private:
 
-    PXR_NS::UsdImagingStageSceneIndexRefPtr     m_stageSceneIndex;
-    
     std::unique_ptr<PXR_NS::HdRenderIndex>      m_renderIndexPtr; 
     
     PXR_NS::HdPluginRenderDelegateUniqueHandle  m_renderDelegatePtr;
