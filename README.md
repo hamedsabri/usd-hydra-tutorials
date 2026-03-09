@@ -47,6 +47,9 @@ Here are the diagram images that are often illustrate these three steps:
 **Screenshot taken from Autodesk's Adding Vulkan to Pixar's Hydra Storm Renderer presentaion**
 <img width="1111" height="564" alt="hydra_image3" src="https://github.com/user-attachments/assets/cb7e4b37-a501-4b86-9bd3-b816462e1791" />
 
+**Screenshot taken from Universal Scene Description (OpenUSD): Dynamic Data Science Pipelines with Hydra**
+<img width="1383" height="770" alt="Screenshot 2026-03-09 041931" src="https://github.com/user-attachments/assets/d3f09123-8664-4ac8-a635-4fad5b94ffbd" />
+
 ## Hydra 1.0 vs Hydra 2.0
 
 Hydra 1.0 and Hydra 2.0 refer to two generations of the scene data handling architecure in OpenUSD's Hydra rendering architecture. The core goal remains the same which is decoupling scene description from rendering but Hydra 2.0 introduced gradually which brings major improvements in flexibility, extensibility, and support for procedural/runtime transformations. You can think of Hydra 2.0 as a `Composable SceneIndex pipeline` where scene is represented as a `chain of HdSceneIndex layers`. Each layer can Filter, Modify, and Procedurally generate data.
