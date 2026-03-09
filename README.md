@@ -43,6 +43,32 @@ enableSceneMaterials – Enables or disables material shading.
 cullStyle – Controls backface/frontface culling behavior.
 clearColor – Defines the background color.
 
+```h
+class UsdCamera;
+class ViewportEngine final
+{
+    using Ptr = std::unique_ptr<PXR_NS::UsdImagingGLEngine>;
+public:
+    ViewportEngine() = default;
+    ~ViewportEngine() = default;
+
+    void initialize(const PXR_NS::UsdStageRefPtr& stage);
+
+    void render(const PXR_NS::UsdStageRefPtr& stage, 
+                UsdCamera* camera,
+                double width, double height);
+
+    std::string rendererName() const;
+    std::string hgiName() const;
+
+private:
+    Ptr                              m_engine;
+    PXR_NS::UsdImagingGLRenderParams m_renderParams;
+
+    PXR_NS::GlfSimpleLight          m_cameraLight;
+    PXR_NS::GlfSimpleLightVector    m_lights;
+};
+```
 ```cpp
 void ViewportEngine::render(const PXR_NS::UsdStageRefPtr& stage, 
                             UsdCamera* camera,
