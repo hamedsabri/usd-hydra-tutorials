@@ -52,7 +52,7 @@ Here are the diagram images that are often illustrate these three steps:
 
 ## Hydra 1.0 vs Hydra 2.0
 
-Hydra 1.0 and Hydra 2.0 refer to two generations of the scene data handling architecure in OpenUSD's Hydra rendering architecture. The core goal remains the same which is decoupling scene description from rendering but Hydra 2.0 introduced gradually which brings major improvements in flexibility, extensibility, and support for procedural/runtime transformations. You can think of Hydra 2.0 as a `Composable SceneIndex pipeline` where scene is represented as a `chain of HdSceneIndex layers`. Each layer can Filter, Modify, and Procedurally generate data.
+Hydra 1.0 and Hydra 2.0 refer to two generations of the scene data handling architecure in OpenUSD's Hydra rendering architecture. The core goal remains the same which is decoupling scene description from rendering but Hydra 2.0 introduced granularity which brings major improvements in flexibility, extensibility, and support for procedural/runtime transformations. You can think of Hydra 2.0 as a `Composable SceneIndex pipeline` where scene is represented as a `chain of HdSceneIndex layers`. Each layer can Filter, Modify, and Procedurally generate data.
 
 # What is Storm (HdStorm)?
 
