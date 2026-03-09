@@ -30,9 +30,9 @@ In both cases, the active stage is stored internally and a stageOpened signal is
 # ViewportEngine
 ViewportEngine is simply a wrapper around OpenUSD’s UsdImagingGLEngine that initializes and manages a Hydra-based OpenGL renderer for drawing a UsdStage with a given camera and render settings.
 
-**SetCameraState**: to define the camera's view and projection matrices
-**SetRenderViewport**: to define the render area
-**Render**: to execute the Hydra render pass
+- **SetCameraState**: to define the camera's view and projection matrices
+- **SetRenderViewport**: to define the render area
+- **Render**: to execute the Hydra render pass
 
 `UsdImagingGLRenderParams` controls how the scene is rendered. It basically defines rendering behavior such as:
 
