@@ -72,16 +72,16 @@ PXR_NS::HgiUniquePtr                        m_hgiPtr;
 PXR_NS::HdDriver                            m_hgiDriver;
 ```
 
-**UsdImagingDelegate**
+**[UsdImagingDelegate](https://openusd.org/dev/api/class_usd_imaging_delegate.html)**
 This is our scene delegate. It translates data from a UsdStage into Hydra primitives and feeds them into the render index.
 
-**HdRenderIndex**
+**[HdRenderIndex](https://openusd.org/dev/api/class_hd_render_index.html)**
 This is the central registry of all renderable data. It sits between the scene delegate and the render delegate.
 
-**HdPluginRenderDelegateUniqueHandle**
+**[HdPluginRenderDelegateUniqueHandle](https://openusd.org/release/api/class_hd_plugin_render_delegate_unique_handle.html)**
 This loads and owns the actual renderer (for example, Storm).
 
-**HdxTaskController**
+**[HdxTaskController](https://openusd.org/release/api/hdx_page_front.html)**
 This is the convenience layer that sets up common rendering tasks such as:
 
 - Render setup
