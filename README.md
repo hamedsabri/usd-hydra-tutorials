@@ -177,17 +177,6 @@ void ViewportEngine::render(const PXR_NS::UsdStageRefPtr& stage,
     auto cameraFrustum = camera->getCamera().GetFrustum();
     m_taskControllerPtr->SetFreeCameraMatrices(cameraFrustum.ComputeViewMatrix(), cameraFrustum.ComputeProjectionMatrix());
 
-    // Camera Light
-    auto cameraPosition = camera->getCamera().GetTransform().ExtractTranslation();
-    m_cameraLight.SetAmbient(PXR_NS::GfVec4f(0.1f, 0.1f, 0.1f, 1.0f));
-    m_cameraLight.SetPosition(PXR_NS::GfVec4f((float)cameraPosition[0], (float)cameraPosition[1], (float)cameraPosition[2], 1.f));
-
-    m_pLightingContext->SetLights({m_cameraLight});
-    m_pLightingContext->SetSceneAmbient(PXR_NS::GfVec4f(0.1f, 0.1f, 0.1f, 1.0f));
-    m_pLightingContext->SetUseLighting(true);
-
-    m_taskControllerPtr->SetLightingState(m_pLightingContext);
-
     // Optional: settoing the Color AOV Clear Value
     // AOVs are defined via HdAovDescriptor and managed by the HdRenderPassState. 
     // The backend renderer (e.g., HdStormRendererPlugin for OpenGL) populates these buffers during execution.
