@@ -10,11 +10,6 @@ info.displayUnloadedPrimsWithBounds = false;
 info.stage                          = stage;
 const PXR_NS::UsdImagingSceneIndices sceneIndices = UsdImagingCreateSceneIndices(info);
 
-// scene delegate
-m_stageSceneIndex = sceneIndices.stageSceneIndex;
-m_stageSceneIndex->SetStage(stage);
-m_stageSceneIndex->SetTime(UsdTimeCode::Default());
-
 PXR_NS::HdSceneIndexBaseRefPtr usdSceneIndex = sceneIndices.finalSceneIndex;
 m_renderIndexPtr->InsertSceneIndex(usdSceneIndex, SdfPath::AbsoluteRootPath());
 ```
