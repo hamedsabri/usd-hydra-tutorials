@@ -88,7 +88,7 @@ This is the convenience layer that sets up common rendering tasks such as:
 - Lighting
 - Camera state
 
-**HdEngine**
+**[HdEngine](https://openusd.org/dev/api/class_hd_engine.html#details)**
 Executes Hydra tasks every frame.
 
 **Hgi + HdDriver**
