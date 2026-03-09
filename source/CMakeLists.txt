@@ -1,4 +1,4 @@
-set(TARGET_NAME Tutorial_6)
+set(TARGET_NAME Tutorial6)
 
 add_executable(${TARGET_NAME})
 
