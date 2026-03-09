@@ -4,13 +4,6 @@ Switching to the new Hydra 2.0 architecture (also known as the Scene Index–bas
 
 ## USD Stage Scene Index
 
-**UsdImagingCreateSceneIndices** initializes and assembles the Scene Index pipeline based on the supplied stage configuration. 
-
-```h
-#include <pxr/usdImaging/usdImaging/stageSceneIndex.h>
-
-PXR_NS::UsdImagingStageSceneIndexRefPtr m_stageSceneIndex;
-```
 The **stageSceneIndex** acts as the bridge between the USD stage and Hydra, while the **finalSceneIndex** represents the fully composed Scene Index chain that Hydra will consume.
 
 At this point, Hydra is aware of the scene graph and can begin translating USD prims into Hydra primitives internally. From there, we create an HdxTaskController, which is responsible for setting up and managing the render tasks (render task, selection task, lighting task, etc.) required to drive the frame.
@@ -36,7 +29,6 @@ ViewportEngine::~ViewportEngine()
 {
     // The order is important here
     m_taskControllerPtr  = nullptr;
-    m_renderIndexPtr     = nullptr;
     m_renderIndexPtr     = nullptr;
     m_renderDelegatePtr  = nullptr;
 }
