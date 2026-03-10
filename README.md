@@ -110,9 +110,11 @@ void ViewportEngine::initialize(const PXR_NS::UsdStageRefPtr& stage)
     // to return a Hgi object for the current platform.
     m_hgiPtr = Hgi::CreateNamedHgi(HgiTokens->OpenGL);
     m_hgiDriver = { PXR_NS::HgiTokens->renderDriver, PXR_NS::VtValue(m_hgiPtr.get()) };
+
+	// create the Render Index
     m_renderIndexPtr.reset(PXR_NS::HdRenderIndex::New( m_renderDelegatePtr.Get(), {&m_hgiDriver} ));
 
-    // create the Render Index
+    // create the scene delegate
     m_sceneDelegatePtr = std::make_unique<PXR_NS::UsdImagingDelegate>(m_renderIndexPtr.get(), PXR_NS::SdfPath("/"));
 
     // populate Hydra from the USD stage
