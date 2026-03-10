@@ -70,6 +70,19 @@ private:
 };
 ```
 ```cpp
+void ViewportEngine::initialize(const PXR_NS::UsdStageRefPtr& stage)
+{
+    [[maybe_unused]] PXR_NS::SdfPathVector excludedPaths;
+    m_engine = std::make_unique<PXR_NS::UsdImagingGLEngine>(stage->GetPseudoRoot().GetPath(), excludedPaths);
+
+    // camera light
+    m_cameraLight.SetAmbient({ 0.1, 0.1, 0.1, 1.0 });
+    m_cameraLight.SetDiffuse({ 1.0, 1.0, 1.0, 1.f });
+    m_cameraLight.SetSpecular({ 0.1, 0.1, 0.1, 1.f });
+    m_cameraLight.SetPosition({ 10, 10, 10, 1.0 });
+    m_lights.push_back(m_cameraLight);
+}
+
 void ViewportEngine::render(const PXR_NS::UsdStageRefPtr& stage, 
                             UsdCamera* camera,
                             double width, double height)
