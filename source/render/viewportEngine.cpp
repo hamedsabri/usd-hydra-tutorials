@@ -9,7 +9,7 @@ namespace HVW_NS
 
 void ViewportEngine::initialize(const PXR_NS::UsdStageRefPtr& stage)
 {
-    PXR_NS::SdfPathVector excludedPaths;
+    [[maybe_unused]] PXR_NS::SdfPathVector excludedPaths;
     m_engine = std::make_unique<PXR_NS::UsdImagingGLEngine>(stage->GetPseudoRoot().GetPath(), excludedPaths);
 
     // camera light
