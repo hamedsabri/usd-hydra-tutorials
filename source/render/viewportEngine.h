@@ -17,8 +17,6 @@ namespace HVW_NS
 class UsdCamera;
 class ViewportEngine final
 {
-    using Ptr = std::unique_ptr<PXR_NS::UsdImagingGLEngine>;
-
 public:
     ViewportEngine() = default;
     ~ViewportEngine();
